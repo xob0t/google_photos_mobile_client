@@ -33,7 +33,23 @@ class GPhotosMobileClient:
 
     def _auth_and_update_session(self, auth_data: str) -> dict:
         """Send auth request to get bearer token and update session header."""
-        request_auth_data = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(auth_data).items()}
+        auth_data_dict = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(auth_data).items()}
+
+        request_auth_data = {
+            "androidId": auth_data_dict["androidId"],
+            "app": "com.google.android.apps.photos",
+            "client_sig": auth_data_dict["client_sig"],
+            "callerPkg": "com.google.android.apps.photos",
+            "callerSig": auth_data_dict["callerSig"],
+            "device_country": auth_data_dict["device_country"],
+            "Email": auth_data_dict["Email"],
+            "google_play_services_version": auth_data_dict["google_play_services_version"],
+            "lang": auth_data_dict["lang"],
+            "oauth2_foreground": auth_data_dict["oauth2_foreground"],
+            "sdk_version": auth_data_dict["sdk_version"],
+            "service": auth_data_dict["service"],
+            "Token": auth_data_dict["Token"],
+        }
 
         headers = {
             "Accept-Encoding": "gzip",
