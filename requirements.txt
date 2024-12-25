@@ -1,0 +1,3 @@
+bbpb
+rich
+requests
