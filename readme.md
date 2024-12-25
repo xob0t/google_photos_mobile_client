@@ -23,6 +23,8 @@ pip install gphotos_mobile_client.zip
 
 #### Library
 
+- If auth_data is omitted, `GP_AUTH_DATA` env variable will be used
+
 ```python
 from gphotos_mobile_client import GPhotosMobileClient
 
@@ -43,23 +45,25 @@ gp-upload "/path/to/media_file.jpg" "androidId=216e583113f43c75&app=com.google.a
 ```
 
 ```
-usage: gp-upload [-h] [--progress] [--force-upload] file_path auth_data
+usage: gp-upload [-h] [--auth_data AUTH_DATA] [--progress] [--force-upload] file_path
 
 Google Photos mobile client.
 
 positional arguments:
-  file_path       Path to the file to upload.
-  auth_data       Google auth data for authentication.
+  file_path             Path to the file to upload.
 
 options:
-  -h, --help      show this help message and exit
-  --progress      Display upload progress.
-  --force-upload  Upload the file even if it is already uploaded.
+  -h, --help            show this help message and exit
+  --auth_data AUTH_DATA
+                        Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
+  --progress            Display upload progress.
+  --force-upload        Upload the file even if it is already uploaded.
 ```
 
 ### auth_data? Where Do I Get Mine?
 
-Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.
+Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.  
+You only need to do it once.
 
 1. Get a rooted android device or an emulator.
 2. Connect the device to your PC via ADB.
