@@ -7,11 +7,21 @@ Made for uploading files as Pixel XL without running an emulator.
 
 ### Set Up
 
+Install with Git and pip:
+
 ```
-pip install -r requirements.txt
+pip install git+https://github.com/xob0t/gphotos_mobile_client -U
+```
+
+OR download as zip and intall with pip:
+
+```
+pip install gphotos_mobile_client.zip
 ```
 
 ### Example Usage
+
+#### Library
 
 ```python
 from gphotos_mobile_client import GPhotosMobileClient
@@ -26,10 +36,10 @@ print(media_key)
 
 ```
 
-CLI
+#### CLI
 
 ```
-usage: gphotos_mobile_client.py [-h] [--progress] [--force-upload] file_path auth
+usage: gp-upload [-h] [--progress] [--force-upload] file_path auth
 
 Google Photos mobile client.
 
@@ -43,7 +53,7 @@ options:
   --force-upload  Upload the file even if it is already uploaded.
 ```
 
-### Auth data? Where do i get mine?
+### Auth Data? Where Do I Get Mine?
 
 Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.
 
@@ -58,7 +68,7 @@ Below is a step by step instruction on how to accuire your Google account's mobi
     ![http_toolkit_tip](media/image.png)
 7. Now you've got yourself your auth data! 🎉
 
-### My Other Google Photos scripts and tools
+### My Other Google Photos Scripts And Tools
 
 - https://github.com/xob0t/gp-file-hide
 - https://github.com/xob0t/Google-Photos-Toolkit
