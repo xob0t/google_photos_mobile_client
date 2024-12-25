@@ -5,7 +5,7 @@ from .client import GPhotosMobileClient
 def main():
     parser = argparse.ArgumentParser(description="Google Photos mobile client.")
     parser.add_argument("file_path", type=str, help="Path to the file to upload.")
-    parser.add_argument("auth_data", type=str, help="Google auth data for authentication.")
+    parser.add_argument("--auth_data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--force-upload", action="store_true", help="Upload the file even if it is already uploaded.")
 

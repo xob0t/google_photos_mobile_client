@@ -3,6 +3,7 @@ from typing import Any, Optional
 import pathlib
 import hashlib
 import base64
+import os
 from urllib.parse import parse_qs
 import requests
 from rich.progress import Progress
@@ -14,13 +15,15 @@ from .message_types import FINALIZE_MESSAGE_TYPE
 class GPhotosMobileClient:
     """Reverse engineered Google Photos mobile API client."""
 
-    def __init__(self, auth_data: str) -> None:
+    def __init__(self, auth_data: Optional[str] = None) -> None:
         """Initializes the GPhotosMobileClient instance.
 
         Args:
-            auth_data (str): Google auth data for authentication.
+            auth_data (str): Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
         """
-        self.auth_data = auth_data
+        self.auth_data = auth_data or os.getenv("GP_AUTH_DATA")
+        if not self.auth_data:
+            raise ValueError("No auth_data argument provided and `GP_AUTH_DATA` environment variable not set")
         self.auth_response: Optional[dict] = None
         self.session = requests.Session()
         self.request_timeout = 10
@@ -29,6 +32,7 @@ class GPhotosMobileClient:
             "Accept-Language": "en_US",
             "User-Agent": "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)",
         }
+
         self._auth_and_update_session(self.auth_data)
 
     def _auth_and_update_session(self, auth_data: str) -> dict:
@@ -64,7 +68,6 @@ class GPhotosMobileClient:
             response = self.session.post("https://android.googleapis.com/auth", headers=headers, data=request_auth_data, timeout=self.request_timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            # Print the error message and the response body
             error_message = f"HTTPError: {e}, Response Body: {response.text}"
             print(error_message)
             raise
@@ -98,7 +101,6 @@ class GPhotosMobileClient:
             response = self.session.post("https://photos.googleapis.com/data/upload/uploadmedia/interactive", data=serialized_data, timeout=self.request_timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            # Print the error message and the response body
             error_message = f"HTTPError: {e}, Response Body: {response.text}"
             print(error_message)
             raise
@@ -176,7 +178,6 @@ class GPhotosMobileClient:
             response = self.session.post("https://photosdata-pa.googleapis.com/6439526531001121323/16538846908252377752", data=serialized_data, timeout=self.request_timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            # Print the error message and the response body
             error_message = f"HTTPError: {e}, Response Body: {response.text}"
             print(error_message)
             raise
