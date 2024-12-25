@@ -18,7 +18,7 @@ class GPhotosMobileClient:
         """Initializes the GPhotosMobileClient instance.
 
         Args:
-            auth_data (str): Android auth data for authentication.
+            auth_data (str): Google auth data for authentication.
         """
         self.auth_data = auth_data
         self.auth_response: Optional[dict] = None

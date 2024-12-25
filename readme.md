@@ -39,13 +39,13 @@ print(media_key)
 #### CLI
 
 ```
-usage: gp-upload [-h] [--progress] [--force-upload] file_path auth
+usage: gp-upload [-h] [--progress] [--force-upload] file_path auth_data
 
 Google Photos mobile client.
 
 positional arguments:
   file_path       Path to the file to upload.
-  auth            Google auth data for authentication.
+  auth_data       Google auth data for authentication.
 
 options:
   -h, --help      show this help message and exit
@@ -53,7 +53,7 @@ options:
   --force-upload  Upload the file even if it is already uploaded.
 ```
 
-### Auth Data? Where Do I Get Mine?
+### auth_data? Where Do I Get Mine?
 
 Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.
 
