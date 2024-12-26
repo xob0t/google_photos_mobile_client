@@ -60,7 +60,7 @@ options:
   --progress            Display upload progress.
   --recursive           Scan the directory recursively.
   --threads THREADS     Number of threads to run uploads with. Defaults to 1.
-  --force-upload        Force the upload of the file even if it's already present in Google Photos (based on hash).
+  --force-upload        Upload files regardless of their presence in Google Photos (determined by hash).
   --timeout TIMEOUT     Requests timeout, seconds. Defaults to 30.
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the logging level (default: INFO)
