@@ -29,12 +29,12 @@ pip install gphotos_mobile_client.zip
 ```python
 from gphotos_mobile_client import GPhotosMobileClient
 
-file_path = "/path/to/media_file.jpg"
+path = "/path/to/media_file.jpg" # file or dir path
 auth_data = "androidId=216e583113f43c75&app=com.google.android.apps.photos&client_sig=34bb24c05e47e0aefa65a58a762171d9b613a680..."
 
 
 client = GPhotosMobileClient(auth_data=auth_data)
-media_key = client.upload_file(file_path=file_path, progress=True)
+media_key = client.upload(target=path, progress=True)
 print(media_key)
 
 ```
