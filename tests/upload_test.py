@@ -10,7 +10,7 @@ class TestUpload(unittest.TestCase):
         self.client = GPhotosMobileClient()
 
     def test_upload(self):
-        media_key = self.client.upload(path=self.file_path, force_upload=True, show_progress=True)
+        media_key = self.client.upload(target=self.file_path, force_upload=True, show_progress=True)
         print(media_key)
 
     def test_hash_check(self):

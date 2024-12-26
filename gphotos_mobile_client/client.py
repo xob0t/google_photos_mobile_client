@@ -26,7 +26,7 @@ class GPhotosMobileClient:
 
         Args:
             auth_data: Google authentication data string. If not provided, will attempt to use
-                      the GP_AUTH_DATA environment variable.
+                      the `GP_AUTH_DATA` environment variable.
             log_level: Logging level to use. Must be one of "INFO", "DEBUG", "WARNING",
                       "ERROR", or "CRITICAL". Defaults to "INFO".
             timeout: Requests timeout, seconds. Defaults to DEFAULT_TIMEOUT.
@@ -42,15 +42,16 @@ class GPhotosMobileClient:
         self.timeout = timeout
 
         if not self.auth_data:
-            raise ValueError("No auth_data argument provided and `GP_AUTH_DATA` environment variable not set")
+            raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
         self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
-    def _upload_file(self, file_path: str | Path, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
         Args:
             file_path: Path to the file to upload, can be string or Path object.
+            sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
             show_progress: Whether to display upload progress in the console.
                          Defaults to False.
             force_upload: Whether to upload the file even if it's already present
@@ -74,19 +75,18 @@ class GPhotosMobileClient:
 
         bearer_token = self.auth_response["Auth"]
 
-        file_progress = self.progress.add_task(description=f"Generating Hash: {file_path.name}", visible=show_progress)
+        file_progress = self.progress.add_task(description="placeholder", visible=False)
 
-        # calculate sha1 without loading whole file in memory
-        sha1 = hashlib.sha1()
-        chunk_size = 4096
-        with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-            while True:
-                chunk = file.read(chunk_size)
-                if not chunk:
-                    break
-                sha1.update(chunk)
-
-        sha1_hash = sha1.digest()
+        if isinstance(sha1_hash, str):
+            sha1_hash = base64.b64decode(sha1_hash)
+        if not sha1_hash:
+            self.progress.update(task_id=file_progress, description=f"Generating Hash: {file_path.name}", visible=show_progress)
+            # calculate sha1 without loading whole file in memory
+            hash_sha1 = hashlib.sha1()
+            with self.progress.open(file_path, "rb", task_id=file_progress) as file:
+                for chunk in iter(lambda: file.read(4096), b""):
+                    hash_sha1.update(chunk)
+            sha1_hash = hash_sha1.digest()
 
         sha1_hash_b64 = base64.b64encode(sha1_hash).decode("utf-8")
 
@@ -127,8 +127,8 @@ class GPhotosMobileClient:
 
     def upload(
         self,
-        path: Optional[str | Path] = None,
-        file_path_list: Optional[list[str | Path]] = None,
+        target: str | Path | list[str | Path],
+        sha1_hash: Optional[bytes | str] = None,
         recursive: Optional[bool] = False,
         show_progress: Optional[bool] = False,
         threads: Optional[int] = 1,
@@ -138,10 +138,9 @@ class GPhotosMobileClient:
         Upload one or more files or directories to Google Photos.
 
         Args:
-            path: Single file or directory path to upload. If a directory, all media files
-                 within it will be uploaded.
-            file_path_list: List of file paths to upload. Takes precedence over `path`
-                      if both are provided.
+            target: A file path, directory path, or a list of such paths to upload.
+            sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
+                        Used to skip hash calculation. Only applies when uploading a single file.
             recursive: Whether to recursively search for media files in subdirectories.
                           Only applies when uploading directories. Defaults to True.
             show_progress: Whether to display upload progress in the console. Defaults to True.
@@ -160,21 +159,24 @@ class GPhotosMobileClient:
             ValueError: If neither path nor path_list is provided, or if no valid media
                        files are found in the specified locations.
         """
+        if isinstance(target, (str, Path)):
+            target = [target]
 
-        # TODO maybe use functools instead of two optional args
+        if not isinstance(target, list) or not all(isinstance(p, (str, Path)) for p in target):
+            raise TypeError("`target` must be a file path, a directory path, or a list of such paths.")
 
-        if file_path_list:
-            return self._upload_multiple(file_path_list, threads=threads, show_progress=show_progress, force_upload=force_upload)
+        # Expand all paths to a flat list of files
+        files_to_upload = [file for path in target for file in self._find_media_files(path, recursive=recursive)]
 
-        if path:
-            files_to_upload = self._find_media_files(path, recursive=recursive)
-            if len(files_to_upload) > 1:
-                return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+        if not files_to_upload:
+            raise ValueError("No valid media files found to upload.")
 
-            # Upload single file
-            return self._upload_file(files_to_upload[0], show_progress=show_progress, force_upload=force_upload)
+        # Choose upload function based on number of files
+        if len(files_to_upload) > 1:
+            return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
 
-        raise ValueError("Must provide a `path` or `path_list` argument.")
+        # Single file upload
+        return self._upload_file(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
 
     def _find_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
         """
