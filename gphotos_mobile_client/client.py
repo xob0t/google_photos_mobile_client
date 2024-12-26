@@ -106,6 +106,25 @@ class GPhotosMobileClient:
         self.progress.remove_task(file_progress)
         return {file_path.absolute().as_posix(): media_key}
 
+    def check_hash(self, sha1_hash: bytes | str) -> str | None:
+        """
+        Check if a file hash exists in Google Photos.
+
+        Args:
+            sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
+
+        Returns:
+            The Google Photos media key if the hash is found, otherwise None.
+        """
+        if isinstance(sha1_hash, str):
+            sha1_hash = base64.b64decode(sha1_hash)
+        if int(self.auth_response["Expiry"]) <= int(time.time()):
+            # get a new token if current is expired
+            self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
+
+        bearer_token = self.auth_response["Auth"]
+        return api_methods.find_remote_media_by_hash(sha1_hash, auth_token=bearer_token, timeout=self.timeout)
+
     def upload(
         self,
         path: Optional[str | Path] = None,
