@@ -21,9 +21,10 @@ pip install gphotos_mobile_client.zip
 
 ## Example Usage
 
-### Library
+> [!NOTE]
+> If auth_data is omitted, `GP_AUTH_DATA` env variable will be used
 
-- If auth_data is omitted, `GP_AUTH_DATA` env variable will be used
+### Library
 
 ```python
 from gphotos_mobile_client import GPhotosMobileClient
@@ -41,7 +42,7 @@ print(media_key)
 ### CLI
 
 ```
-gp-upload "/path/to/media_file.jpg" "androidId=216e583113f43c75&app=com.google.android.apps.photos&client_sig=34bb24c05e47e0aefa65a58a762171d9b613a680..." --progress
+gp-upload "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c75&app=com.google.android.apps.photos&client_sig=34bb24c05e47e0aefa65a58a762171d9b613a680..."
 ```
 
 ```
@@ -59,7 +60,7 @@ options:
   --progress            Display upload progress.
   --recursive           Scan the directory recursively.
   --threads THREADS     Number of threads to run uploads with. Defaults to 1.
-  --force-upload        Force the upload of the file even if it's already present in Google Photos (based on hash)
+  --force-upload        Force the upload of the file even if it's already present in Google Photos (based on hash).
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the logging level (default: INFO)
 ```
