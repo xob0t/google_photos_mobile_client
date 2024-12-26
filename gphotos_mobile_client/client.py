@@ -137,6 +137,8 @@ class GPhotosMobileClient:
                        files are found in the specified locations.
         """
 
+        # TODO maybe use functools instead of two optional args
+
         if file_path_list:
             return self._upload_multiple(file_path_list, threads=threads, show_progress=show_progress, force_upload=force_upload)
 
