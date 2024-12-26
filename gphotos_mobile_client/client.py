@@ -64,14 +64,14 @@ class GPhotosMobileClient:
         file_size = file_path.stat().st_size
 
         if int(self.auth_response["Expiry"]) <= int(time.time()):
-            # get new token if current is expired
+            # get a new token if current is expired
             self.auth_response = api_methods.get_auth_token(self.auth_data)
 
         bearer_token = self.auth_response["Auth"]
 
         file_progress = self.progress.add_task(description=f"Generating Hash: {file_path.name}", visible=show_progress)
 
-        # calculating sha1 without loading whole file in memory
+        # calculate sha1 without loading whole file in memory
         sha1 = hashlib.sha1()
         chunk_size = 4096
         with self.progress.open(file_path, "rb", task_id=file_progress) as file:

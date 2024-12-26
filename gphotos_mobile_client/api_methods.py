@@ -9,7 +9,7 @@ import blackboxprotobuf
 # it's too long, so it is stored separately
 from .message_types import FINALIZE_MESSAGE_TYPE
 
-REQUESTS_TIMEOUT = 10
+REQUESTS_TIMEOUT = 30
 
 
 def get_auth_token(auth_data: str, timeout: Optional[int] = REQUESTS_TIMEOUT) -> dict[str, str]:
