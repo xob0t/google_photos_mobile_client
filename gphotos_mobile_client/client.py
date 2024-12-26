@@ -105,8 +105,8 @@ class GPhotosMobileClient:
         self,
         path: Optional[str | Path] = None,
         file_path_list: Optional[list[str | Path]] = None,
-        recursive: Optional[bool] = True,
-        show_progress: Optional[bool] = True,
+        recursive: Optional[bool] = False,
+        show_progress: Optional[bool] = False,
         threads: Optional[int] = 1,
         force_upload: Optional[int] = False,
     ) -> dict[str, str]:
@@ -152,7 +152,7 @@ class GPhotosMobileClient:
 
         raise ValueError("Must provide a `path` or `path_list` argument.")
 
-    def _find_media_files(self, path: str | Path, recursive: Optional[bool] = True) -> list[Path]:
+    def _find_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
         """
         Find all valid media files in the specified path.
 
