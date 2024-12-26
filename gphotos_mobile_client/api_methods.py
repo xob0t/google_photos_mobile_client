@@ -9,16 +9,16 @@ import blackboxprotobuf
 # it's too long, so it is stored separately
 from .message_types import FINALIZE_MESSAGE_TYPE
 
-REQUESTS_TIMEOUT = 30
+DEFAULT_TIMEOUT = 30
 
 
-def get_auth_token(auth_data: str, timeout: Optional[int] = REQUESTS_TIMEOUT) -> dict[str, str]:
+def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict[str, str]:
     """
     Send auth request to get bearer token.
 
     Args:
         auth_data (str): URL-encoded authentication data.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to REQUESTS_TIMEOUT.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         Dict[str, str]: Parsed authentication response with token and other details.
@@ -65,7 +65,7 @@ def get_auth_token(auth_data: str, timeout: Optional[int] = REQUESTS_TIMEOUT) ->
     return parsed_auth_response
 
 
-def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout: Optional[int] = REQUESTS_TIMEOUT) -> str:
+def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> str:
     """
     Obtain an upload token from the Google Photos API.
 
@@ -73,7 +73,7 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
         sha_hash_b64 (str): Base64-encoded SHA-1 hash of the file.
         file_size (int): Size of the file in bytes.
         auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to REQUESTS_TIMEOUT.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         str: Upload token for the file.
@@ -101,14 +101,14 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
     return response.headers["X-GUploader-UploadID"]
 
 
-def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Optional[int] = REQUESTS_TIMEOUT) -> Optional[str]:
+def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> Optional[str]:
     """
     Check library for existing files with the hash.
 
     Args:
         sha1_hash (bytes): SHA-1 hash of the file.
         auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to REQUESTS_TIMEOUT.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         Optional[str]: Media key of the existing file, or None if not found.
@@ -134,7 +134,7 @@ def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Option
     return media_key
 
 
-def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = REQUESTS_TIMEOUT) -> dict[str, Any]:
+def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict[str, Any]:
     """
     Upload a file to Google Photos.
 
@@ -144,7 +144,7 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
         upload_token (str): Upload token from `get_upload_token()`.
         auth_token (str): Auth token from `get_auth_token()`.
         progress (bool, optional): Display upload progress. Defaults to False.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to REQUESTS_TIMEOUT.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         Dict[str, Any]: Decoded upload response.
@@ -182,7 +182,7 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
     return upload_response_decoded
 
 
-def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha1_hash: bytes, auth_token: str, timeout: Optional[int] = REQUESTS_TIMEOUT) -> str:
+def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha1_hash: bytes, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> str:
     """
     Finalize the upload by sending the complete message to the API.
 
@@ -191,7 +191,7 @@ def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha
         file_name (str): Name of the uploaded file.
         sha1_hash (bytes): SHA-1 hash of the file.
         auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to REQUESTS_TIMEOUT.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         str: Media key of the uploaded file.

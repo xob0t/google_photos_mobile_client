@@ -46,7 +46,7 @@ gp-upload "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113
 ```
 
 ```
-usage: gp-upload [-h] [--auth_data AUTH_DATA] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] path
+usage: gp-upload [-h] [--auth_data AUTH_DATA] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] path
 
 Google Photos mobile client.
 
@@ -61,6 +61,7 @@ options:
   --recursive           Scan the directory recursively.
   --threads THREADS     Number of threads to run uploads with. Defaults to 1.
   --force-upload        Force the upload of the file even if it's already present in Google Photos (based on hash).
+  --timeout TIMEOUT     Requests timeout, seconds. Defaults to 30.
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the logging level (default: INFO)
 ```

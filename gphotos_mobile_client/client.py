@@ -14,11 +14,13 @@ from . import utils
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+DEFAULT_TIMEOUT = api_methods.DEFAULT_TIMEOUT
+
 
 class GPhotosMobileClient:
     """Reverse engineered Google Photos mobile API client."""
 
-    def __init__(self, auth_data: Optional[str] = None, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
+    def __init__(self, auth_data: Optional[str] = None, timeout: Optional[int] = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
         """
         Initialize the Google Photos mobile client.
 
@@ -27,6 +29,7 @@ class GPhotosMobileClient:
                       the GP_AUTH_DATA environment variable.
             log_level: Logging level to use. Must be one of "INFO", "DEBUG", "WARNING",
                       "ERROR", or "CRITICAL". Defaults to "INFO".
+            timeout: Requests timeout, seconds. Defaults to DEFAULT_TIMEOUT.
 
         Raises:
             ValueError: If no auth_data is provided and GP_AUTH_DATA environment variable is not set.
@@ -36,9 +39,11 @@ class GPhotosMobileClient:
         self.progress = utils.create_progress()
         self.valid_mimetypes = ["image/", "video/"]
         self.auth_data = auth_data or os.getenv("GP_AUTH_DATA")
+        self.timeout = timeout
+
         if not self.auth_data:
             raise ValueError("No auth_data argument provided and `GP_AUTH_DATA` environment variable not set")
-        self.auth_response = api_methods.get_auth_token(self.auth_data)
+        self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
     def _upload_file(self, file_path: str | Path, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
         """
@@ -65,7 +70,7 @@ class GPhotosMobileClient:
 
         if int(self.auth_response["Expiry"]) <= int(time.time()):
             # get a new token if current is expired
-            self.auth_response = api_methods.get_auth_token(self.auth_data)
+            self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
         bearer_token = self.auth_response["Auth"]
 
@@ -87,17 +92,17 @@ class GPhotosMobileClient:
 
         if not force_upload:
             self.progress.update(task_id=file_progress, description=f"Checking: {file_path.name}")
-            if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash, auth_token=bearer_token):
+            if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash, auth_token=bearer_token, timeout=self.timeout):
                 self.progress.remove_task(file_progress)
                 return {file_path.absolute().as_posix(): remote_media_key}
 
-        upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token)
+        upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
         self.progress.reset(task_id=file_progress)
         self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}")
         with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-            upload_response_decoded = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token)
+            upload_response_decoded = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
         self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
-        media_key = api_methods.finalize_upload(upload_response_decoded=upload_response_decoded, file_name=file_path.name, sha1_hash=sha1_hash, auth_token=bearer_token)
+        media_key = api_methods.finalize_upload(upload_response_decoded=upload_response_decoded, file_name=file_path.name, sha1_hash=sha1_hash, auth_token=bearer_token, timeout=self.timeout)
         self.progress.remove_task(file_progress)
         return {file_path.absolute().as_posix(): media_key}
 
