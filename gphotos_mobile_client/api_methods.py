@@ -82,7 +82,7 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
         requests.HTTPError: If the upload token request fails.
     """
     message_type = {"1": {"type": "int"}, "2": {"type": "int"}, "3": {"type": "int"}, "4": {"type": "int"}, "7": {"type": "int"}}
-    proto_body = {"1": 2, "2": 1, "3": 1, "4": 3, "7": file_size}
+    proto_body = {"1": 2, "2": 2, "3": 1, "4": 3, "7": file_size}
 
     serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
 
