@@ -10,7 +10,7 @@ Made for uploading files as Pixel XL without relying on a physical device/emulat
 Install with git and pip:
 
 ```
-pip install git+https://github.com/xob0t/gphotos_mobile_client -U
+pip install git+https://github.com/xob0t/gphotos_mobile_client --force-reinstall
 ```
 
 OR download as zip and intall with pip:
