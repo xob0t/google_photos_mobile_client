@@ -28,6 +28,8 @@ def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> 
     """
     auth_data_dict = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(auth_data).items()}
 
+    # this dict has a purpose, just sending `auth_data_dict` can result in auth request that returns encrypted token
+    # building it manually should prevent this
     request_auth_data = {
         "androidId": auth_data_dict["androidId"],
         "app": "com.google.android.apps.photos",
