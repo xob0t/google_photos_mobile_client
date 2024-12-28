@@ -1,4 +1,4 @@
-from typing import Optional, Any, IO, Generator
+from typing import Optional, Any, IO, Generator, Literal
 import time
 from urllib.parse import parse_qs
 from pathlib import Path
@@ -182,7 +182,16 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
     return upload_response_decoded
 
 
-def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha1_hash: bytes, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> str:
+def finalize_upload(
+    upload_response_decoded: dict[str, Any],
+    file_name: str,
+    sha1_hash: bytes,
+    auth_token: str,
+    quality: Optional[Literal["original", "saver"]] = "original",
+    make: Optional[str] = "Google",
+    model: Optional[str] = "Pixel XL",
+    timeout: Optional[int] = DEFAULT_TIMEOUT,
+) -> str:
     """
     Finalize the upload by sending the complete message to the API.
 
@@ -191,6 +200,9 @@ def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha
         file_name (str): Name of the uploaded file.
         sha1_hash (bytes): SHA-1 hash of the file.
         auth_token (str): Authentication token.
+        quality (Optional[Literal["saver", "original"]], optional): Quality setting for the upload. Defaults to "original".
+        make (Optional[str], optional): Device manufacturer name. Defaults to "Google".
+        model (Optional[str], optional): Device model name. Defaults to "Pixel XL".
         timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
@@ -200,17 +212,16 @@ def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha
         requests.HTTPError: If the finalization request fails.
     """
 
+    quality_map = {"saver": 1, "original": 3}
+
     message_type = FINALIZE_MESSAGE_TYPE
     proto_body = {
         "1": {
-            "1": {
-                "1": 2,
-                "2": upload_response_decoded["2"],
-            },
+            "1": upload_response_decoded,
             "2": file_name,
             "3": sha1_hash,
             "4": {"1": int(time.time()), "2": 46000000},
-            "7": 3,
+            "7": quality_map[quality],
             "8": {
                 "1": {
                     "1": "",
@@ -258,7 +269,7 @@ def finalize_upload(upload_response_decoded: dict[str, Any], file_name: str, sha
             "10": 1,
             "17": 0,
         },
-        "2": {"3": "Pixel XL", "4": "Google", "5": 28},  # changing this to other make and model will make uploads take up storage
+        "2": {"3": model, "4": make, "5": 28},
         "3": bytes([1, 3]),
     }
 
