@@ -154,10 +154,6 @@ class GPhotosMobileClient:
                 "/path/to/photo1.jpg": "media_key_123",
                 "/path/to/photo2.jpg": "media_key_456"
             }
-
-        Raises:
-            ValueError: If neither path nor path_list is provided, or if no valid media
-                       files are found in the specified locations.
         """
         if isinstance(target, (str, Path)):
             target = [target]
@@ -171,11 +167,9 @@ class GPhotosMobileClient:
         if not files_to_upload:
             raise ValueError("No valid media files found to upload.")
 
-        # Choose upload function based on number of files
         if len(files_to_upload) > 1:
             return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
 
-        # Single file upload
         return self._upload_file(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
 
     def _find_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
