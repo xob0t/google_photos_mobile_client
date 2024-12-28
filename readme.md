@@ -83,9 +83,13 @@ You only need to do it once.
 
 ## Troubleshooting
 
-- 403 Response Status  
+- __403 Response Status__  
   Try Google Photos ReVanced. Patch it yourself or use a patched apk https://github.com/j-hc/revanced-magisk-module/releases  
   It uses an alternative to google services, and the format of the auth request is a bit different.
+
+- __I logged into the app but didn’t see any authentication requests.__  
+  The app periodically refreshes its token. If it already has one, you’ll need to wait for it to request a new one.
+  To avoid waiting, re-logging into your Google account should trigger the request.
 
 ## My Other Google Photos Scripts And Tools
 
