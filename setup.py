@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="gphotos_mobile_client",
-    version="0.4.1",
+    version="0.4.5",
     python_requires=">=3.10",
     description="Reverse engineered Google Photos mobile API client",
     author="xob0t",
