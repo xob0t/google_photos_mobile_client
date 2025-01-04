@@ -215,6 +215,7 @@ def finalize_upload(
     """
 
     quality_map = {"saver": 1, "original": 3}
+    android_api_version = 28
 
     message_type = FINALIZE_MESSAGE_TYPE
     proto_body = {
@@ -271,7 +272,7 @@ def finalize_upload(
             "10": 1,
             "17": 0,
         },
-        "2": {"3": model, "4": make, "5": 28},
+        "2": {"3": model, "4": make, "5": android_api_version},
         "3": bytes([1, 3]),
     }
 
