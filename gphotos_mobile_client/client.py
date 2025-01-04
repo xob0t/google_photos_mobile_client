@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Literal
+from typing import Optional, Literal, Iterable
 from concurrent.futures import ThreadPoolExecutor
 import signal
 import hashlib
@@ -127,7 +127,7 @@ class GPhotosMobileClient:
 
     def upload(
         self,
-        target: str | Path | list[str | Path],
+        target: str | Path | Iterable[str | Path],
         sha1_hash: Optional[bytes | str] = None,
         recursive: Optional[bool] = False,
         show_progress: Optional[bool] = False,
@@ -138,7 +138,7 @@ class GPhotosMobileClient:
         Upload one or more files or directories to Google Photos.
 
         Args:
-            target: A file path, directory path, or a list of such paths to upload.
+            target: A file path, directory path, or an iterable of such paths to upload.
             sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
                         Used to skip hash calculation. Only applies when uploading a single file.
             recursive: Whether to recursively search for media files in subdirectories.
@@ -158,8 +158,8 @@ class GPhotosMobileClient:
         if isinstance(target, (str, Path)):
             target = [target]
 
-        if not isinstance(target, list) or not all(isinstance(p, (str, Path)) for p in target):
-            raise TypeError("`target` must be a file path, a directory path, or a list of such paths.")
+        if not isinstance(target, Iterable) or not all(isinstance(p, (str, Path)) for p in target):
+            raise TypeError("`target` must be a file path, a directory path, or an iterable of such paths.")
 
         # Expand all paths to a flat list of files
         files_to_upload = [file for path in target for file in self._find_media_files(path, recursive=recursive)]
@@ -218,12 +218,12 @@ class GPhotosMobileClient:
 
         return media_files
 
-    def _upload_multiple(self, paths: list[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
         """
         Upload multiple files in parallel to Google Photos.
 
         Args:
-            paths: List of file paths to upload.
+            paths: Iterable of file paths to upload.
             threads: Number of concurrent upload threads to use. Defaults to 1.
             show_progress: Whether to display upload progress in the console. Defaults to False.
             force_upload: Whether to upload files even if they're already present in
