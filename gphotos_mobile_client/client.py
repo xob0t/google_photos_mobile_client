@@ -8,6 +8,7 @@ import os
 import mimetypes
 from pathlib import Path
 
+from rich.progress import TaskID
 from . import api_methods
 from . import utils
 
@@ -51,7 +52,7 @@ class GPhotosMobileClient:
 
         Args:
             file_path: Path to the file to upload, can be string or Path object.
-            sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
+            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
             show_progress: Whether to display upload progress in the console.
                          Defaults to False.
             force_upload: Whether to upload the file even if it's already present
@@ -77,53 +78,56 @@ class GPhotosMobileClient:
 
         file_progress = self.progress.add_task(description="placeholder", visible=False)
 
-        if isinstance(sha1_hash, str):
-            sha1_hash = base64.b64decode(sha1_hash)
         if not sha1_hash:
-            self.progress.update(task_id=file_progress, description=f"Generating Hash: {file_path.name}", visible=show_progress)
-            # calculate sha1 without loading whole file in memory
-            hash_sha1 = hashlib.sha1()
-            with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-                for chunk in iter(lambda: file.read(4096), b""):
-                    hash_sha1.update(chunk)
-            sha1_hash = hash_sha1.digest()
-
-        sha1_hash_b64 = base64.b64encode(sha1_hash).decode("utf-8")
+            # Calculate new hash if none provided
+            sha1_hash_bytes = self._calculate_sha1_hash(file_progress, file_path, show_progress)
+            sha1_hash_b64 = base64.b64encode(sha1_hash_bytes).decode("utf-8")
+        else:
+            sha1_hash_bytes, sha1_hash_b64 = utils.process_sha1_hash(sha1_hash)
 
         if not force_upload:
             self.progress.update(task_id=file_progress, description=f"Checking: {file_path.name}")
-            if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash, auth_token=bearer_token, timeout=self.timeout):
+            if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout):
                 self.progress.remove_task(file_progress)
                 return {file_path.absolute().as_posix(): remote_media_key}
 
         upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
         self.progress.reset(task_id=file_progress)
-        self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}")
+        self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}", visible=show_progress)
         with self.progress.open(file_path, "rb", task_id=file_progress) as file:
             upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
         self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
-        media_key = api_methods.finalize_upload(upload_response_decoded=upload_response, file_name=file_path.name, sha1_hash=sha1_hash, auth_token=bearer_token, timeout=self.timeout)
+        media_key = api_methods.finalize_upload(upload_response_decoded=upload_response, file_name=file_path.name, sha1_hash=sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout)
         self.progress.remove_task(file_progress)
         return {file_path.absolute().as_posix(): media_key}
 
-    def check_hash(self, sha1_hash: bytes | str) -> str | None:
+    def _calculate_sha1_hash(self, file_progress: TaskID, file_path: Path, show_progress: Optional[bool] = False) -> bytes:
+        """Calculate sha1 without loading whole file in memory"""
+        self.progress.update(task_id=file_progress, description=f"Calculating Hash: {file_path.name}", visible=show_progress)
+        hash_sha1 = hashlib.sha1()
+        with self.progress.open(file_path, "rb", task_id=file_progress) as file:
+            for chunk in iter(lambda: file.read(4096), b""):
+                hash_sha1.update(chunk)
+        return hash_sha1.digest()
+
+    def get_media_key_by_hash(self, sha1_hash: bytes | str) -> str | None:
         """
-        Check if a file hash exists in Google Photos.
+        Get a Google Photos media key by media's hash.
 
         Args:
-            sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
+            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
 
         Returns:
             The Google Photos media key if the hash is found, otherwise None.
         """
-        if isinstance(sha1_hash, str):
-            sha1_hash = base64.b64decode(sha1_hash)
+        sha1_hash_bytes, _ = utils.process_sha1_hash(sha1_hash)
+
         if int(self.auth_response["Expiry"]) <= int(time.time()):
             # get a new token if current is expired
             self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
         bearer_token = self.auth_response["Auth"]
-        return api_methods.find_remote_media_by_hash(sha1_hash, auth_token=bearer_token, timeout=self.timeout)
+        return api_methods.find_remote_media_by_hash(sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout)
 
     def upload(
         self,
@@ -139,7 +143,7 @@ class GPhotosMobileClient:
 
         Args:
             target: A file path, directory path, or an iterable of such paths to upload.
-            sha1_hash: The SHA-1 hash of the file, in bytes or Base64-encoded string.
+            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
                         Used to skip hash calculation. Only applies when uploading a single file.
             recursive: Whether to recursively search for media files in subdirectories.
                           Only applies when uploading directories. Defaults to True.
