@@ -97,7 +97,15 @@ class GPhotosMobileClient:
         with self.progress.open(file_path, "rb", task_id=file_progress) as file:
             upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
         self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
-        media_key = api_methods.finalize_upload(upload_response_decoded=upload_response, file_name=file_path.name, sha1_hash=sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout)
+        last_modified_timestamp = int(os.path.getmtime(file_path))
+        media_key = api_methods.finalize_upload(
+            upload_response_decoded=upload_response,
+            file_name=file_path.name,
+            sha1_hash=sha1_hash_bytes,
+            auth_token=bearer_token,
+            upload_timestamp=last_modified_timestamp,
+            timeout=self.timeout,
+        )
         self.progress.remove_task(file_progress)
         return {file_path.absolute().as_posix(): media_key}
 

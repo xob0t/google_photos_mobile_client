@@ -192,6 +192,7 @@ def finalize_upload(
     quality: Optional[Literal["original", "saver"]] = "original",
     make: Optional[str] = "Google",
     model: Optional[str] = "Pixel XL",
+    upload_timestamp: Optional[int] = None,
     timeout: Optional[int] = DEFAULT_TIMEOUT,
 ) -> str:
     """
@@ -216,6 +217,8 @@ def finalize_upload(
 
     quality_map = {"saver": 1, "original": 3}
     android_api_version = 28
+    upload_timestamp = upload_timestamp or int(time.time())
+    unknown_int = 46000000
 
     message_type = FINALIZE_MESSAGE_TYPE
     proto_body = {
@@ -223,7 +226,7 @@ def finalize_upload(
             "1": upload_response_decoded,
             "2": file_name,
             "3": sha1_hash,
-            "4": {"1": int(time.time()), "2": 46000000},
+            "4": {"1": upload_timestamp, "2": unknown_int},
             "7": quality_map[quality],
             "8": {
                 "1": {
