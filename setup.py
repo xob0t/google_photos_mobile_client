@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="gphotos_mobile_client",
+    name="gpmc",
     version="0.4.6",
     python_requires=">=3.10",
     description="Reverse engineered Google Photos mobile API client",
@@ -13,5 +13,10 @@ setup(
         "rich",
         "requests",
     ],
-    entry_points={"console_scripts": ["gp-upload = gphotos_mobile_client.cli:main"]},
+    entry_points={
+        "console_scripts": [
+            "gp-upload = gpmc.cli:main",
+            "gpmc = gpmc.cli:main",
+        ]
+    },
 )

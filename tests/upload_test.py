@@ -1,6 +1,6 @@
 import unittest
 
-from gphotos_mobile_client import GPhotosMobileClient
+from gpmc import Client
 
 
 class TestUpload(unittest.TestCase):
@@ -9,7 +9,7 @@ class TestUpload(unittest.TestCase):
         self.image_sha1_hash_b64 = "bjvmULLYvkVj8jWVQFu1Pl98hYA="
         self.image_sha1_hash_hxd = "6e3be650b2d8be4563f23595405bb53e5f7c8580"
         self.mkv_file_path = "media/sample_640x360.mkv"
-        self.client = GPhotosMobileClient()
+        self.client = Client()
 
     def test_image_upload(self):
         """Test image upload."""

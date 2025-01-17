@@ -18,7 +18,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 DEFAULT_TIMEOUT = api_methods.DEFAULT_TIMEOUT
 
 
-class GPhotosMobileClient:
+class Client:
     """Reverse engineered Google Photos mobile API client."""
 
     def __init__(self, auth_data: Optional[str] = None, timeout: Optional[int] = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
