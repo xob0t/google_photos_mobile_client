@@ -5,7 +5,6 @@ from pathlib import Path
 import requests
 import blackboxprotobuf
 
-
 # it's too long, so it is stored separately
 from .message_types import FINALIZE_MESSAGE_TYPE
 
@@ -136,7 +135,7 @@ def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Option
     return media_key
 
 
-def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict[str, Any]:
+def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> blackboxprotobuf.Message:
     """
     Upload a file to Google Photos.
 
@@ -149,7 +148,7 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
         timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
-        Dict[str, Any]: Decoded upload response.
+        blackboxprotobuf.Message: Decoded upload response.
 
     Raises:
         requests.HTTPError: If the file upload fails.
@@ -296,3 +295,64 @@ def finalize_upload(
     decoded_message, _ = blackboxprotobuf.decode_message(response.content)
     media_key = decoded_message["1"]["3"]["1"]
     return media_key
+
+
+def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> blackboxprotobuf.Message:
+    """
+    Move remote media items to the trash using deduplication keys.
+
+    Args:
+        dedup_keys (List[str]): List of deduplication keys for the media items to be trashed.
+        auth_token (str): Authentication token.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+
+    Returns:
+        blackboxprotobuf.Message: Api response message.
+
+    Raises:
+        requests.HTTPError: If the trash operation request fails.
+    """
+
+    message_type = {
+        "2": {"type": "int"},
+        "3": {"type": "string"},
+        "4": {"type": "int"},
+        "8": {
+            "field_order": ["4"],
+            "message_typedef": {
+                "4": {
+                    "field_order": ["2", "3", "4", "5"],
+                    "message_typedef": {
+                        "2": {"message_typedef": {}, "type": "message"},
+                        "3": {"field_order": ["1"], "message_typedef": {"1": {"message_typedef": {}, "type": "message"}}, "type": "message"},
+                        "4": {"message_typedef": {}, "type": "message"},
+                        "5": {"field_order": ["1"], "message_typedef": {"1": {"message_typedef": {}, "type": "message"}}, "type": "message"},
+                    },
+                    "type": "message",
+                }
+            },
+            "type": "message",
+        },
+        "9": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"type": "string"}}, "type": "message"}}, "type": "message"},
+    }
+
+    proto_body = {
+        "2": 1,
+        "3": dedup_keys,
+        "4": 1,
+        "8": {"4": {"2": {}, "3": {"1": {}}, "4": {}, "5": {"1": {}}}},
+        "9": {"1": 5, "2": {"1": 49029607, "2": "28"}},
+    }
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    headers = {
+        "Accept-Encoding": "gzip",
+        "Accept-Language": "en_US",
+        "Content-Type": "application/x-protobuf",
+        "User-Agent": "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)",
+        "Authorization": f"Bearer {auth_token}",
+    }
+    response = requests.post("https://photosdata-pa.googleapis.com/6439526531001121323/17490284929287180316", headers=headers, data=serialized_data, timeout=timeout)
+    response.raise_for_status()
+
+    decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+    return decoded_message

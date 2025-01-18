@@ -6,6 +6,11 @@ from rich.logging import RichHandler
 from rich.progress import BarColumn, Progress, TimeRemainingColumn, TaskProgressColumn
 
 
+def urlsafe_base64(base64_hash: str) -> str:
+    """Convert Base64 str to URL-safe Base64 string."""
+    return base64_hash.replace("+", "-").replace("/", "_").rstrip("=")
+
+
 def create_logger(log_level: str) -> logging.Logger:
     """Create rich logger"""
     logging.basicConfig(

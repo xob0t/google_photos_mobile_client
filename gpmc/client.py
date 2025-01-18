@@ -8,6 +8,7 @@ import os
 import mimetypes
 from pathlib import Path
 
+import blackboxprotobuf
 from rich.progress import TaskID
 from . import api_methods
 from . import utils
@@ -261,3 +262,28 @@ class Client:
                     self.logger.error(f"Error uploading file {file}: {e}")
         self.progress.remove_task(overall_progress)
         return uploaded_files
+
+    def move_to_trash(self, sha1_hashes: str | bytes | Iterable[str | bytes]) -> blackboxprotobuf.Message:
+        """
+        Move remote media files to trash.
+
+        Args:
+            sha1_hashes: A single SHA-1 hash (as bytes or a hexadecimal/Base64-encoded string)
+                        or an iterable of such hashes representing the files to be moved to trash.
+
+        Returns:
+            A BlackboxProtobuf Message containing the response from the API.
+
+        Raises:
+            ValueError: If the input hashes are invalid.
+            requests.HTTPError: If the API request fails.
+        """
+
+        if isinstance(sha1_hashes, str | bytes):
+            sha1_hashes = [sha1_hashes]
+
+        hashes_b64 = [utils.process_sha1_hash(hash)[1] for hash in sha1_hashes]
+        dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
+        bearer_token = self.auth_response["Auth"]
+        response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=bearer_token)
+        return response

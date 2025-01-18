@@ -11,6 +11,11 @@ class TestUpload(unittest.TestCase):
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
 
+    def test_move_to_trash(self):
+        """Test move to trash."""
+        response = self.client.move_to_trash(sha1_hashes=self.image_sha1_hash_hxd)
+        print(response)
+
     def test_image_upload(self):
         """Test image upload."""
         media_key = self.client.upload(target=self.image_file_path, force_upload=True, show_progress=True)
