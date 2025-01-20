@@ -135,7 +135,7 @@ def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Option
     return media_key
 
 
-def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> blackboxprotobuf.Message:
+def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict:
     """
     Upload a file to Google Photos.
 
@@ -148,7 +148,7 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
         timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
-        blackboxprotobuf.Message: Decoded upload response.
+        dict: Decoded upload response.
 
     Raises:
         requests.HTTPError: If the file upload fails.
@@ -297,7 +297,7 @@ def finalize_upload(
     return media_key
 
 
-def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> blackboxprotobuf.Message:
+def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict:
     """
     Move remote media items to the trash using deduplication keys.
 
@@ -307,7 +307,7 @@ def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: 
         timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
-        blackboxprotobuf.Message: Api response message.
+        dict: Api response message.
 
     Raises:
         requests.HTTPError: If the trash operation request fails.

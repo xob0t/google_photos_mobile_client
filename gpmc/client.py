@@ -263,7 +263,7 @@ class Client:
         self.progress.remove_task(overall_progress)
         return uploaded_files
 
-    def move_to_trash(self, sha1_hashes: str | bytes | Iterable[str | bytes]) -> blackboxprotobuf.Message:
+    def move_to_trash(self, sha1_hashes: str | bytes | Iterable[str | bytes]) -> dict:
         """
         Move remote media files to trash.
 
