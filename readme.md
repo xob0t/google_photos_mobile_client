@@ -9,13 +9,13 @@ Made for uploading files as Pixel XL without relying on a physical device/emulat
 
 Install with git and pip:
 
-```
+```bash
 pip install git+https://github.com/xob0t/gphotos_mobile_client --force-reinstall
 ```
 
 OR download as zip and intall with pip:
 
-```
+```bash
 pip install gphotos_mobile_client.zip
 ```
 
@@ -41,11 +41,11 @@ print(media_key)
 
 ### CLI
 
-```
+```bash
 gp-upload "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c75&app=com.google.android.apps.photos&client_sig=34bb24c05e47e0aefa65a58a762171d9b613a680..."
 ```
 
-```
+```text
 usage: gp-upload [-h] [--auth_data AUTH_DATA] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] path
 
 Google Photos mobile client.
@@ -71,27 +71,34 @@ options:
 Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.  
 You only need to do it once.
 
-1. Get a rooted android device or an emulator.
+1. Get a rooted android device or an emulator. Recommended Android version >=9
 2. Connect the device to your PC via ADB.
-3. Install https://httptoolkit.com
-4. In HTTP Toolkit, select Intercept - Android Device via ADB. Filter traffic with `contains(https://www.googleapis.com/auth/photos.native)`
+3. Install [HTTP Toolkit](https://httptoolkit.com)
+4. In HTTP Toolkit, select Intercept - `Android Device via ADB`. Filter traffic with
+
+    ```text
+    contains(https://www.googleapis.com/auth/photos.native)
+    ```
+
 5. Open Google Photos app and login with your account.
 6. There should be a single request found.  
    Copy request body as text.  
-    ![http_toolkit_tip](media/image.png)
+   ![http_toolkit_tip](media/image.png)
 7. Now you've got yourself your auth_data! 🎉
 
 ## Troubleshooting
 
-- __403 Response Status__  
-  Try Google Photos ReVanced. Patch it yourself or use a patched apk https://github.com/j-hc/revanced-magisk-module/releases  
-  It uses an alternative to google services, and the format of the auth request is a bit different.
+- __No Auth Request Intercepted__  
+  1. Log out of your Goolge account.
+  2. Log in again.
+  3. Try `Android App via Frida` interception method in HTTP Toolkit.
 
-- __I logged into the app but didn’t see any authentication requests.__  
-  The app periodically refreshes its token. If it already has one, you’ll need to wait for it to request a new one.
-  To avoid waiting, re-logging into your Google account should trigger the request.
+- __403 Response Status__  
+  - Make sure you're copying request body and not the response.
+  - Try Google Photos ReVanced. Patch it yourself or use a patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases)  
+    It uses an alternative to google services, and the format of the auth request is a bit different.
 
 ## My Other Google Photos Scripts And Tools
 
-- Disguse any file as media for GP to accept and store it: https://github.com/xob0t/gp-file-hide
-- Manage library with bulk operations: https://github.com/xob0t/Google-Photos-Toolkit
+- Disguse any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
+- Manage library with bulk operations: [https://github.com/xob0t/Google-Photos-Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
