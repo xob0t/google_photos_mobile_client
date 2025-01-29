@@ -231,37 +231,53 @@ class Client:
 
         return media_files
 
-    def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
-        """
-        Upload multiple files in parallel to Google Photos.
+def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    """
+    Upload multiple files in parallel to Google Photos.
+    Args:
+        paths: Iterable of file paths to upload.
+        threads: Number of concurrent upload threads to use. Defaults to 1.
+        show_progress: Whether to display upload progress in the console. Defaults to False.
+        force_upload: Whether to upload files even if they're already present in
+                      Google Photos (based on hash). Defaults to False.
+    Returns:
+        A dictionary mapping absolute file paths to their Google Photos media keys.
+    Note:
+        Failed uploads are logged as errors but don't stop the overall process.
+    """
+    uploaded_files = {}
+    total_files = len(paths)  # Общее количество файлов
+    completed_files = 0       # Количество успешно загруженных файлов
 
-        Args:
-            paths: Iterable of file paths to upload.
-            threads: Number of concurrent upload threads to use. Defaults to 1.
-            show_progress: Whether to display upload progress in the console. Defaults to False.
-            force_upload: Whether to upload files even if they're already present in
-                             Google Photos (based on hash). Defaults to False.
+    overall_progress = self.progress.add_task(
+        description=f"Overall Progress: {completed_files}/{total_files}",
+        total=total_files,
+        visible=show_progress
+    )
 
-        Returns:
-            A dictionary mapping absolute file paths to their Google Photos media keys.
+    # Upload files in parallel using ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = {
+            executor.submit(self._upload_file, file, show_progress=show_progress, force_upload=force_upload): file
+            for file in paths
+        }
+        for future in self.progress.track(futures, task_id=overall_progress):
+            file = futures[future]
+            try:
+                media_key_dict = future.result()
+                uploaded_files.update(media_key_dict)
+            except Exception as e:
+                self.logger.error(f"Error uploading file {file}: {e}")
+            finally:
+                completed_files += 1
+                # Обновляем описание задачи с текущим состоянием
+                self.progress.update(
+                    task_id=overall_progress,
+                    description=f"Overall Progress: {completed_files}/{total_files}"
+                )
 
-        Note:
-            Failed uploads are logged as errors but don't stop the overall process.
-        """
-        uploaded_files = {}
-        overall_progress = self.progress.add_task(description="Overall Progress", visible=show_progress)
-        # Upload files in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = {executor.submit(self._upload_file, file, show_progress=show_progress, force_upload=force_upload): file for file in paths}
-            for future in self.progress.track(futures, task_id=overall_progress):
-                file = futures[future]
-                try:
-                    media_key_dict = future.result()
-                    uploaded_files = uploaded_files | media_key_dict
-                except Exception as e:
-                    self.logger.error(f"Error uploading file {file}: {e}")
-        self.progress.remove_task(overall_progress)
-        return uploaded_files
+    self.progress.remove_task(overall_progress)
+    return uploaded_files
 
     def move_to_trash(self, sha1_hashes: str | bytes | Iterable[str | bytes]) -> dict:
         """
