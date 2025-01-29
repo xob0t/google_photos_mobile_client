@@ -47,68 +47,76 @@ class Client:
             raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
         self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
-    def _upload_file(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
-        """
-        Upload a single file to Google Photos.
+def _upload_file(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False, max_retries: int = 3) -> dict[str, str]:
+    """
+    Upload a single file to Google Photos with retry mechanism.
+    Args:
+        file_path: Path to the file to upload, can be string or Path object.
+        sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
+        show_progress: Whether to display upload progress in the console. Defaults to False.
+        force_upload: Whether to upload the file even if it's already present in Google Photos (based on hash). Defaults to False.
+        max_retries: Maximum number of retry attempts in case of failure. Defaults to 3.
+    Returns:
+        A dictionary mapping the absolute file path to its Google Photos media key.
+        Example: {"/absolute/path/to/photo.jpg": "media_key_123"}
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        IOError: If there are issues reading the file.
+        ValueError: If the file is empty or cannot be processed.
+    """
+    file_path = Path(file_path)
+    file_size = file_path.stat().st_size
 
-        Args:
-            file_path: Path to the file to upload, can be string or Path object.
-            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
-            show_progress: Whether to display upload progress in the console.
-                         Defaults to False.
-            force_upload: Whether to upload the file even if it's already present
-                             in Google Photos (based on hash). Defaults to False.
+    for attempt in range(max_retries + 1):  # Попытки начинаются с 0
+        try:
+            if int(self.auth_response["Expiry"]) <= int(time.time()):
+                # Получаем новый токен, если текущий истек
+                self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
+            bearer_token = self.auth_response["Auth"]
 
-        Returns:
-            A dictionary mapping the absolute file path to its Google Photos media key.
-            Example: {"/absolute/path/to/photo.jpg": "media_key_123"}
+            file_progress = self.progress.add_task(description="placeholder", visible=False)
 
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            IOError: If there are issues reading the file.
-            ValueError: If the file is empty or cannot be processed.
-        """
-        file_path = Path(file_path)
-        file_size = file_path.stat().st_size
+            if not sha1_hash:
+                # Вычисляем новый хэш, если он не предоставлен
+                sha1_hash_bytes = self._calculate_sha1_hash(file_progress, file_path, show_progress)
+                sha1_hash_b64 = base64.b64encode(sha1_hash_bytes).decode("utf-8")
+            else:
+                sha1_hash_bytes, sha1_hash_b64 = utils.process_sha1_hash(sha1_hash)
 
-        if int(self.auth_response["Expiry"]) <= int(time.time()):
-            # get a new token if current is expired
-            self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
+            if not force_upload:
+                self.progress.update(task_id=file_progress, description=f"Checking: {file_path.name}")
+                if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout):
+                    self.progress.remove_task(file_progress)
+                    return {file_path.absolute().as_posix(): remote_media_key}
 
-        bearer_token = self.auth_response["Auth"]
+            upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
+            self.progress.reset(task_id=file_progress)
+            self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}", visible=show_progress)
 
-        file_progress = self.progress.add_task(description="placeholder", visible=False)
+            with self.progress.open(file_path, "rb", task_id=file_progress) as file:
+                upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
 
-        if not sha1_hash:
-            # Calculate new hash if none provided
-            sha1_hash_bytes = self._calculate_sha1_hash(file_progress, file_path, show_progress)
-            sha1_hash_b64 = base64.b64encode(sha1_hash_bytes).decode("utf-8")
-        else:
-            sha1_hash_bytes, sha1_hash_b64 = utils.process_sha1_hash(sha1_hash)
+            self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
+            last_modified_timestamp = int(os.path.getmtime(file_path))
+            media_key = api_methods.finalize_upload(
+                upload_response_decoded=upload_response,
+                file_name=file_path.name,
+                sha1_hash=sha1_hash_bytes,
+                auth_token=bearer_token,
+                upload_timestamp=last_modified_timestamp,
+                timeout=self.timeout,
+            )
 
-        if not force_upload:
-            self.progress.update(task_id=file_progress, description=f"Checking: {file_path.name}")
-            if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout):
-                self.progress.remove_task(file_progress)
-                return {file_path.absolute().as_posix(): remote_media_key}
+            self.progress.remove_task(file_progress)
+            return {file_path.absolute().as_posix(): media_key}
 
-        upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
-        self.progress.reset(task_id=file_progress)
-        self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}", visible=show_progress)
-        with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-            upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
-        self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
-        last_modified_timestamp = int(os.path.getmtime(file_path))
-        media_key = api_methods.finalize_upload(
-            upload_response_decoded=upload_response,
-            file_name=file_path.name,
-            sha1_hash=sha1_hash_bytes,
-            auth_token=bearer_token,
-            upload_timestamp=last_modified_timestamp,
-            timeout=self.timeout,
-        )
-        self.progress.remove_task(file_progress)
-        return {file_path.absolute().as_posix(): media_key}
+        except Exception as e:
+            if attempt < max_retries:
+                self.logger.warning(f"Attempt {attempt + 1} failed for file {file_path}. Retrying...")
+                time.sleep(2 ** attempt)  # Экспоненциальная задержка между попытками
+            else:
+                self.logger.error(f"Failed to upload file {file_path} after {max_retries} attempts. Error: {e}")
+                raise
 
     def _calculate_sha1_hash(self, file_progress: TaskID, file_path: Path, show_progress: Optional[bool] = False) -> bytes:
         """Calculate sha1 without loading whole file in memory"""
