@@ -47,7 +47,7 @@ class Client:
             raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
         self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
-    def _upload_file(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False, max_attempts: Optional[int] = 3) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -95,8 +95,24 @@ class Client:
         upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
         self.progress.reset(task_id=file_progress)
         self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}", visible=show_progress)
-        with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-            upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
+
+        # Retry mechanism
+        max_attempts = 3  # Максимальное количество попыток
+        attempt = 0
+
+        while attempt < max_attempts:
+            try:
+                with self.progress.open(file_path, "rb", task_id=file_progress) as file:
+                    upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
+                break  # Если загрузка прошла успешно, выходим из цикла
+            except Exception as e:
+                attempt += 1
+                if attempt == max_attempts:
+                    self.progress.remove_task(file_progress)
+                    raise  # Если попытки исчерпаны, выбрасываем исключение
+                self.logger.warning(f"Attempt {attempt} failed for {file_path.name}. Retrying... Error: {e}")
+                time.sleep(2 ** attempt)  # Экспоненциальная задержка между попытками
+
         self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
         last_modified_timestamp = int(os.path.getmtime(file_path))
         media_key = api_methods.finalize_upload(
@@ -146,6 +162,7 @@ class Client:
         show_progress: Optional[bool] = False,
         threads: Optional[int] = 1,
         force_upload: Optional[int] = False,
+        max_attempts: Optional[int] = 3,
     ) -> dict[str, str]:
         """
         Upload one or more files or directories to Google Photos.
@@ -181,9 +198,9 @@ class Client:
             raise ValueError("No valid media files found to upload.")
 
         if len(files_to_upload) > 1:
-            return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+            return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload, max_attempts=max_attempts)
 
-        return self._upload_file(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
+        return self._upload_file(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload, max_attempts=max_attempts)
 
     def _find_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
         """
@@ -231,7 +248,7 @@ class Client:
 
         return media_files
 
-    def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False, max_attempts: Optional[int] = 3) -> dict[str, str]:
         """
         Upload multiple files in parallel to Google Photos.
 
@@ -249,17 +266,40 @@ class Client:
             Failed uploads are logged as errors but don't stop the overall process.
         """
         uploaded_files = {}
-        overall_progress = self.progress.add_task(description="Overall Progress", visible=show_progress)
-        # Upload files in parallel using ThreadPoolExecutor
+        total_files = len(paths)  # Общее количество файлов
+        uploaded_count = 0  # Количество уже загруженных файлов
+
+        # Создаем прогресс-бар для общего прогресса
+        overall_progress = self.progress.add_task(
+            description=f"Overall Progress: {uploaded_count}/{total_files} files",
+            visible=show_progress,
+            total=total_files
+        )
+
+        # Загружаем файлы параллельно с использованием ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = {executor.submit(self._upload_file, file, show_progress=show_progress, force_upload=force_upload): file for file in paths}
+            futures = {executor.submit(self._upload_file, file, show_progress=show_progress, force_upload=force_upload, max_attempts=max_attempts): file for file in paths}
             for future in self.progress.track(futures, task_id=overall_progress):
                 file = futures[future]
                 try:
                     media_key_dict = future.result()
                     uploaded_files = uploaded_files | media_key_dict
+                    uploaded_count += 1  # Увеличиваем счетчик загруженных файлов
+                    # Обновляем описание прогресс-бара
+                    self.progress.update(
+                        task_id=overall_progress,
+                        description=f"Overall Progress: {uploaded_count}/{total_files} files",
+                        advance=1
+                    )
                 except Exception as e:
                     self.logger.error(f"Error uploading file {file}: {e}")
+                    uploaded_count += 1  # Увеличиваем счетчик даже в случае ошибки
+                    self.progress.update(
+                        task_id=overall_progress,
+                        description=f"Overall Progress: {uploaded_count}/{total_files} files",
+                        advance=1
+                    )
+
         self.progress.remove_task(overall_progress)
         return uploaded_files
 
