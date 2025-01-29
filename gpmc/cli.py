@@ -14,9 +14,10 @@ def main():
     parser.add_argument("--force-upload", action="store_true", help="Upload files regardless of their presence in Google Photos (determined by hash).")
     parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
     parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
+    parser.add_argument("--max_attempts", type=int, default=3, help="Maximum number of retry attempts for failed uploads. Defaults to 3.")
 
     args = parser.parse_args()
 
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
-    output = client.upload(target=args.path, show_progress=args.progress, recursive=args.recursive, threads=args.threads, force_upload=args.force_upload)
+    output = client.upload(target=args.path, show_progress=args.progress, recursive=args.recursive, threads=args.threads, force_upload=args.force_upload, max_attempts=args.max_attempts)
     print(output)
