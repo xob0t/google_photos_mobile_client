@@ -11,6 +11,7 @@ def new_session_with_retries() -> requests.Session:
     s = requests.Session()
     retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504])
     s.mount("http://", HTTPAdapter(max_retries=retries))
+    s.mount("https://", HTTPAdapter(max_retries=retries))
     return s
 
 
