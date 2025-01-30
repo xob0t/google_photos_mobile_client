@@ -283,6 +283,7 @@ class Client:
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
+            TextColumn("{task.description}"),
         )
         file_progress = Progress(
             DownloadColumn(),
@@ -291,11 +292,12 @@ class Client:
             TransferSpeedColumn(),
             TextColumn("{task.description}"),
         )
+        upload_error_count = 0
         progress_group = Group(
             file_progress,
             overall_progress,
         )
-        overall_task_id = overall_progress.add_task("Uploading files", total=len(paths), visible=show_progress)
+        overall_task_id = overall_progress.add_task("Errors: 0", total=len(paths), visible=show_progress)
         with Live(progress_group, refresh_per_second=20):
             with ThreadPoolExecutor(max_workers=threads) as executor:
                 futures = {executor.submit(self._upload_file, file, progress=file_progress, show_progress=show_progress, force_upload=force_upload): file for file in paths}
@@ -306,6 +308,8 @@ class Client:
                         uploaded_files = uploaded_files | media_key_dict
                     except Exception as e:
                         self.logger.error(f"Error uploading file {file}: {e}")
+                        upload_error_count += 1
+                        overall_progress.update(task_id=overall_task_id, description=f"[bold red] Errors: {upload_error_count}")
                     finally:
                         overall_progress.advance(overall_task_id)
         return uploaded_files
