@@ -10,8 +10,9 @@ def new_session_with_retries() -> requests.Session:
     # https://stackoverflow.com/questions/23267409/how-to-implement-retry-mechanism-into-python-requests-library
     s = requests.Session()
     retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504])
-    s.mount("http://", HTTPAdapter(max_retries=retries))
-    s.mount("https://", HTTPAdapter(max_retries=retries))
+    adapter = HTTPAdapter(max_retries=retries)
+    s.mount("http://", adapter)
+    s.mount("https://", adapter)
     return s
 
 
