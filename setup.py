@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="gpmc",
-    version="0.4.8",
+    version="0.4.9",
     python_requires=">=3.10",
     description="Reverse engineered Google Photos mobile API client",
     author="xob0t",
