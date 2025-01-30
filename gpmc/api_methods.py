@@ -4,9 +4,9 @@ from urllib.parse import parse_qs
 from pathlib import Path
 import blackboxprotobuf
 
-# it's too long, so it is stored separately
-from .message_types import FINALIZE_MESSAGE_TYPE
+from .message_types import FINALIZE_MESSAGE_TYPE  # Too long, stored separately
 from .utils import new_session_with_retries
+from .exceptions import UploadRejected
 
 DEFAULT_TIMEOUT = 30
 
@@ -29,7 +29,7 @@ def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> 
 
     # this dict has a purpose, just sending `auth_data_dict` can result in auth request that returns encrypted token
     # building it manually should prevent this
-    request_auth_data = {
+    auth_request_data = {
         "androidId": auth_data_dict["androidId"],
         "app": "com.google.android.apps.photos",
         "client_sig": auth_data_dict["client_sig"],
@@ -50,12 +50,12 @@ def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> 
         "app": "com.google.android.apps.photos",
         "Connection": "Keep-Alive",
         "Content-Type": "application/x-www-form-urlencoded",
-        "device": request_auth_data["androidId"],
+        "device": auth_request_data["androidId"],
         "User-Agent": "GoogleAuth/1.4 (Pixel XL PQ2A.190205.001); gzip",
     }
 
     with new_session_with_retries() as session:
-        response = session.post("https://android.googleapis.com/auth", headers=headers, data=request_auth_data, timeout=timeout)
+        response = session.post("https://android.googleapis.com/auth", headers=headers, data=auth_request_data, timeout=timeout)
 
     response.raise_for_status()
 
@@ -297,7 +297,10 @@ def finalize_upload(
         response = session.post("https://photosdata-pa.googleapis.com/6439526531001121323/16538846908252377752", headers=headers, data=serialized_data, timeout=timeout)
     response.raise_for_status()
     decoded_message, _ = blackboxprotobuf.decode_message(response.content)
-    media_key = decoded_message["1"]["3"]["1"]
+    try:
+        media_key = decoded_message["1"]["3"]["1"]
+    except KeyError as e:
+        raise UploadRejected("File upload rejected by api") from e
     return media_key
 
 

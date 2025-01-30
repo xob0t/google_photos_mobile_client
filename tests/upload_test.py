@@ -8,6 +8,7 @@ class TestUpload(unittest.TestCase):
         self.image_file_path = "media/image.png"
         self.image_sha1_hash_b64 = "bjvmULLYvkVj8jWVQFu1Pl98hYA="
         self.image_sha1_hash_hxd = "6e3be650b2d8be4563f23595405bb53e5f7c8580"
+        self.directory_path = "C:/Users/admin/Pictures"
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
 
@@ -19,6 +20,11 @@ class TestUpload(unittest.TestCase):
     def test_image_upload(self):
         """Test image upload."""
         media_key = self.client.upload(target=self.image_file_path, force_upload=True, show_progress=True)
+        print(media_key)
+
+    def test_directory_uplod(self):
+        """Test directory upload."""
+        media_key = self.client.upload(target=self.directory_path, threads=5, show_progress=True)
         print(media_key)
 
     def test_image_upload_with_hash(self):

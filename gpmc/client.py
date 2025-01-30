@@ -1,17 +1,29 @@
 import time
 from typing import Optional, Literal, Iterable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import signal
-import hashlib
-import base64
+
 import os
 import mimetypes
 from pathlib import Path
 
-import blackboxprotobuf
-from rich.progress import TaskID
+from rich.console import Group
+from rich.live import Live
+from rich.progress import (
+    SpinnerColumn,
+    MofNCompleteColumn,
+    DownloadColumn,
+    TaskProgressColumn,
+    TransferSpeedColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+
 from . import api_methods
 from . import utils
+from .hash_handler import HashHandler
 
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -38,7 +50,6 @@ class Client:
             requests.HTTPError: If the authentication request fails.
         """
         self.logger = utils.create_logger(log_level)
-        self.progress = utils.create_progress()
         self.valid_mimetypes = ["image/", "video/"]
         self.auth_data = auth_data or os.getenv("GP_AUTH_DATA")
         self.timeout = timeout
@@ -47,7 +58,7 @@ class Client:
             raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
         self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
-    def _upload_file(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, progress: Progress = None, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -77,47 +88,33 @@ class Client:
 
         bearer_token = self.auth_response["Auth"]
 
-        file_progress = self.progress.add_task(description="placeholder", visible=False)
+        file_progress_id = progress.add_task(description="placeholder", visible=False)
+        try:
+            hash_hand = HashHandler(sha1_hash=sha1_hash, file_path=file_path, progress=progress, file_progress_id=file_progress_id, show_progress=show_progress)
 
-        if not sha1_hash:
-            # Calculate new hash if none provided
-            sha1_hash_bytes = self._calculate_sha1_hash(file_progress, file_path, show_progress)
-            sha1_hash_b64 = base64.b64encode(sha1_hash_bytes).decode("utf-8")
-        else:
-            sha1_hash_bytes, sha1_hash_b64 = utils.process_sha1_hash(sha1_hash)
+            if not force_upload:
+                progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}", visible=show_progress)
+                if remote_media_key := api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=bearer_token, timeout=self.timeout):
+                    return {file_path.absolute().as_posix(): remote_media_key}
 
-        if not force_upload:
-            self.progress.update(task_id=file_progress, description=f"Checking: {file_path.name}")
-            if remote_media_key := api_methods.find_remote_media_by_hash(sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout):
-                self.progress.remove_task(file_progress)
-                return {file_path.absolute().as_posix(): remote_media_key}
-
-        upload_token = api_methods.get_upload_token(sha1_hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
-        self.progress.reset(task_id=file_progress)
-        self.progress.update(task_id=file_progress, description=f"Uploading: {file_path.name}", visible=show_progress)
-        with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-            upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
-        self.progress.update(task_id=file_progress, description=f"Finalizing Upload: {file_path.name}")
-        last_modified_timestamp = int(os.path.getmtime(file_path))
-        media_key = api_methods.finalize_upload(
-            upload_response_decoded=upload_response,
-            file_name=file_path.name,
-            sha1_hash=sha1_hash_bytes,
-            auth_token=bearer_token,
-            upload_timestamp=last_modified_timestamp,
-            timeout=self.timeout,
-        )
-        self.progress.remove_task(file_progress)
-        return {file_path.absolute().as_posix(): media_key}
-
-    def _calculate_sha1_hash(self, file_progress: TaskID, file_path: Path, show_progress: Optional[bool] = False) -> bytes:
-        """Calculate sha1 without loading whole file in memory"""
-        self.progress.update(task_id=file_progress, description=f"Calculating Hash: {file_path.name}", visible=show_progress)
-        hash_sha1 = hashlib.sha1()
-        with self.progress.open(file_path, "rb", task_id=file_progress) as file:
-            for chunk in iter(lambda: file.read(4096), b""):
-                hash_sha1.update(chunk)
-        return hash_sha1.digest()
+            upload_token = api_methods.get_upload_token(hash_hand.hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
+            progress.reset(task_id=file_progress_id)
+            progress.update(task_id=file_progress_id, description=f"Uploading: {file_path.name}", visible=show_progress)
+            with progress.open(file_path, "rb", task_id=file_progress_id) as file:
+                upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
+            progress.update(task_id=file_progress_id, description=f"Finalizing Upload: {file_path.name}")
+            last_modified_timestamp = int(os.path.getmtime(file_path))
+            media_key = api_methods.finalize_upload(
+                upload_response_decoded=upload_response,
+                file_name=file_path.name,
+                sha1_hash=hash_hand.hash_bytes,
+                auth_token=bearer_token,
+                upload_timestamp=last_modified_timestamp,
+                timeout=self.timeout,
+            )
+            return {file_path.absolute().as_posix(): media_key}
+        finally:
+            progress.update(file_progress_id, visible=False)
 
     def get_media_key_by_hash(self, sha1_hash: bytes | str) -> str | None:
         """
@@ -129,14 +126,14 @@ class Client:
         Returns:
             The Google Photos media key if the hash is found, otherwise None.
         """
-        sha1_hash_bytes, _ = utils.process_sha1_hash(sha1_hash)
+        hash_hand = HashHandler(sha1_hash=sha1_hash)
 
         if int(self.auth_response["Expiry"]) <= int(time.time()):
             # get a new token if current is expired
             self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
         bearer_token = self.auth_response["Auth"]
-        return api_methods.find_remote_media_by_hash(sha1_hash_bytes, auth_token=bearer_token, timeout=self.timeout)
+        return api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=bearer_token, timeout=self.timeout)
 
     def upload(
         self,
@@ -175,19 +172,19 @@ class Client:
             raise TypeError("`target` must be a file path, a directory path, or an iterable of such paths.")
 
         # Expand all paths to a flat list of files
-        files_to_upload = [file for path in target for file in self._find_media_files(path, recursive=recursive)]
+        files_to_upload = [file for path in target for file in self._search_for_media_files(path, recursive=recursive)]
 
         if not files_to_upload:
             raise ValueError("No valid media files found to upload.")
 
-        if len(files_to_upload) > 1:
-            return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+        if len(files_to_upload) == 1:
+            return self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
 
-        return self._upload_file(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
+        return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
 
-    def _find_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
+    def _search_for_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
         """
-        Find all valid media files in the specified path.
+        Search for valid media files in the specified path.
 
         Args:
             path: File or directory path to search for media files.
@@ -211,7 +208,6 @@ class Client:
         if not path.is_dir():
             raise ValueError("Invalid path. Please provide a file or directory path.")
 
-        # Get list of files in directory
         files = []
         if recursive:
             for root, _, filenames in os.walk(path):
@@ -231,9 +227,42 @@ class Client:
 
         return media_files
 
+    def _upload_single(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+        """
+        Upload a single file to Google Photos.
+
+        Args:
+            file_path: Path to the file to upload
+            sha1_hash: The file's SHA-1 hash for skipping hash calculation
+            show_progress: Whether to show progress
+            force_upload: Whether to force upload even if file exists
+
+        Returns:
+            Dictionary mapping file path to media key
+        """
+        file_progress = Progress(
+            DownloadColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            TransferSpeedColumn(),
+            TextColumn("{task.description}"),
+        )
+
+        with Live(file_progress):
+            try:
+                return self._upload_file(
+                    file_path=file_path,
+                    progress=file_progress,
+                    sha1_hash=sha1_hash,
+                    show_progress=show_progress,
+                    force_upload=force_upload,
+                )
+            except Exception as e:
+                self.logger.error(f"Error uploading file {file_path}: {e}")
+
     def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
         """
-        Upload multiple files in parallel to Google Photos.
+        Upload files in parallel to Google Photos.
 
         Args:
             paths: Iterable of file paths to upload.
@@ -249,18 +278,36 @@ class Client:
             Failed uploads are logged as errors but don't stop the overall process.
         """
         uploaded_files = {}
-        overall_progress = self.progress.add_task(description="Overall Progress", visible=show_progress)
-        # Upload files in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = {executor.submit(self._upload_file, file, show_progress=show_progress, force_upload=force_upload): file for file in paths}
-            for future in self.progress.track(futures, task_id=overall_progress):
-                file = futures[future]
-                try:
-                    media_key_dict = future.result()
-                    uploaded_files = uploaded_files | media_key_dict
-                except Exception as e:
-                    self.logger.error(f"Error uploading file {file}: {e}")
-        self.progress.remove_task(overall_progress)
+        overall_progress = Progress(
+            TextColumn("[bold yellow]Files processed:"),
+            SpinnerColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+        )
+        file_progress = Progress(
+            DownloadColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            TransferSpeedColumn(),
+            TextColumn("{task.description}"),
+        )
+        progress_group = Group(
+            file_progress,
+            overall_progress,
+        )
+        overall_task_id = overall_progress.add_task("Uploading files", total=len(paths), visible=show_progress)
+        with Live(progress_group, refresh_per_second=20):
+            with ThreadPoolExecutor(max_workers=threads) as executor:
+                futures = {executor.submit(self._upload_file, file, progress=file_progress, show_progress=show_progress, force_upload=force_upload): file for file in paths}
+                for future in as_completed(futures):
+                    file = futures[future]
+                    try:
+                        media_key_dict = future.result()
+                        uploaded_files = uploaded_files | media_key_dict
+                    except Exception as e:
+                        self.logger.error(f"Error uploading file {file}: {e}")
+                    finally:
+                        overall_progress.advance(overall_task_id)
         return uploaded_files
 
     def move_to_trash(self, sha1_hashes: str | bytes | Iterable[str | bytes]) -> dict:
@@ -282,7 +329,7 @@ class Client:
         if isinstance(sha1_hashes, str | bytes):
             sha1_hashes = [sha1_hashes]
 
-        hashes_b64 = [utils.process_sha1_hash(hash)[1] for hash in sha1_hashes]
+        hashes_b64 = [HashHandler(sha1_hash=hash).hash_b64 for hash in sha1_hashes]
         dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
         bearer_token = self.auth_response["Auth"]
         response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=bearer_token)
