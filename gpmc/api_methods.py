@@ -2,11 +2,11 @@ from typing import Optional, Any, IO, Generator, Literal
 import time
 from urllib.parse import parse_qs
 from pathlib import Path
-import requests
 import blackboxprotobuf
 
 # it's too long, so it is stored separately
 from .message_types import FINALIZE_MESSAGE_TYPE
+from .utils import new_session_with_retries
 
 DEFAULT_TIMEOUT = 30
 
@@ -54,7 +54,9 @@ def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> 
         "User-Agent": "GoogleAuth/1.4 (Pixel XL PQ2A.190205.001); gzip",
     }
 
-    response = requests.post("https://android.googleapis.com/auth", headers=headers, data=request_auth_data, timeout=timeout)
+    with new_session_with_retries() as session:
+        response = session.post("https://android.googleapis.com/auth", headers=headers, data=request_auth_data, timeout=timeout)
+
     response.raise_for_status()
 
     parsed_auth_response = {}
@@ -96,8 +98,8 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
         "X-Goog-Hash": f"sha1={sha_hash_b64}",
         "X-Upload-Content-Length": str(file_size),
     }
-
-    response = requests.post("https://photos.googleapis.com/data/upload/uploadmedia/interactive", headers=headers, data=serialized_data, timeout=timeout)
+    with new_session_with_retries() as session:
+        response = session.post("https://photos.googleapis.com/data/upload/uploadmedia/interactive", headers=headers, data=serialized_data, timeout=timeout)
     response.raise_for_status()
     return response.headers["X-GUploader-UploadID"]
 
@@ -127,7 +129,8 @@ def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Option
         "User-Agent": "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)",
         "Authorization": f"Bearer {auth_token}",
     }
-    response = requests.post("https://photosdata-pa.googleapis.com/6439526531001121323/5084965799730810217", headers=headers, data=serialized_data, timeout=timeout)
+    with new_session_with_retries() as session:
+        response = session.post("https://photosdata-pa.googleapis.com/6439526531001121323/5084965799730810217", headers=headers, data=serialized_data, timeout=timeout)
     response.raise_for_status()
 
     decoded_message, _ = blackboxprotobuf.decode_message(response.content)
@@ -161,21 +164,22 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
         "Authorization": f"Bearer {auth_token}",
     }
 
-    if isinstance(file, (str, Path)):
-        with Path(file).open("rb") as f:
-            response = requests.put(
+    with new_session_with_retries() as session:
+        if isinstance(file, (str, Path)):
+            with Path(file).open("rb") as f:
+                response = session.put(
+                    f"https://photos.googleapis.com/data/upload/uploadmedia/interactive?upload_id={upload_token}",
+                    headers=headers,
+                    data=f,
+                    timeout=timeout,
+                )
+        else:
+            response = session.put(
                 f"https://photos.googleapis.com/data/upload/uploadmedia/interactive?upload_id={upload_token}",
                 headers=headers,
-                data=f,
+                data=file,
                 timeout=timeout,
             )
-    else:
-        response = requests.put(
-            f"https://photos.googleapis.com/data/upload/uploadmedia/interactive?upload_id={upload_token}",
-            headers=headers,
-            data=file,
-            timeout=timeout,
-        )
 
     response.raise_for_status()
 
@@ -289,8 +293,8 @@ def finalize_upload(
         "x-goog-ext-173412678-bin": "CgcIAhClARgC",
         "x-goog-ext-174067345-bin": "CgIIAg==",
     }
-
-    response = requests.post("https://photosdata-pa.googleapis.com/6439526531001121323/16538846908252377752", headers=headers, data=serialized_data, timeout=timeout)
+    with new_session_with_retries() as session:
+        response = session.post("https://photosdata-pa.googleapis.com/6439526531001121323/16538846908252377752", headers=headers, data=serialized_data, timeout=timeout)
     response.raise_for_status()
     decoded_message, _ = blackboxprotobuf.decode_message(response.content)
     media_key = decoded_message["1"]["3"]["1"]
@@ -351,7 +355,8 @@ def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: 
         "User-Agent": "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)",
         "Authorization": f"Bearer {auth_token}",
     }
-    response = requests.post("https://photosdata-pa.googleapis.com/6439526531001121323/17490284929287180316", headers=headers, data=serialized_data, timeout=timeout)
+    with new_session_with_retries() as session:
+        response = session.post("https://photosdata-pa.googleapis.com/6439526531001121323/17490284929287180316", headers=headers, data=serialized_data, timeout=timeout)
     response.raise_for_status()
 
     decoded_message, _ = blackboxprotobuf.decode_message(response.content)

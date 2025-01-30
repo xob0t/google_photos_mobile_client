@@ -4,6 +4,17 @@ import base64
 
 from rich.logging import RichHandler
 from rich.progress import BarColumn, Progress, TimeRemainingColumn, TaskProgressColumn
+import requests
+from requests.adapters import HTTPAdapter, Retry
+
+
+def new_session_with_retries() -> requests.Session:
+    """Create a new request session with retry mechanism"""
+    # https://stackoverflow.com/questions/23267409/how-to-implement-retry-mechanism-into-python-requests-library
+    s = requests.Session()
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504])
+    s.mount("http://", HTTPAdapter(max_retries=retries))
+    return s
 
 
 def urlsafe_base64(base64_hash: str) -> str:
