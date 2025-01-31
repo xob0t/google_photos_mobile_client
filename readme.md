@@ -1,4 +1,4 @@
-# gphotos_mobile_client
+# google_photos_mobile_client
 
 Very basic, reverse engineered, Google Photos mobile API client.  
 Made for uploading files as Pixel XL without relying on a physical device/emulator.
