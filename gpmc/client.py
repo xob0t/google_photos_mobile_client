@@ -179,15 +179,15 @@ class Client:
             raise ValueError("No valid media files found to upload.")
 
         if len(files_to_upload) == 1:
-            result = self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
+            results = self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
         else:
-            result = self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+            results = self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
 
         if delete_from_host:
-            for file_path in files_to_upload:
+            for file_path, _ in results.items():
                 self.logger.info(f"{file_path} deleting from host")
                 os.remove(file_path)
-        return result
+        return results
 
     def _search_for_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
         """
