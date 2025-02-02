@@ -143,6 +143,7 @@ class Client:
         show_progress: Optional[bool] = False,
         threads: Optional[int] = 1,
         force_upload: Optional[int] = False,
+        delete_from_host: Optional[bool] = False,
     ) -> dict[str, str]:
         """
         Upload one or more files or directories to Google Photos.
@@ -178,9 +179,15 @@ class Client:
             raise ValueError("No valid media files found to upload.")
 
         if len(files_to_upload) == 1:
-            return self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
+            results = self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
+        else:
+            results = self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
 
-        return self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+        if delete_from_host:
+            for file_path, _ in results.items():
+                self.logger.info(f"{file_path} deleting from host")
+                os.remove(file_path)
+        return results
 
     def _search_for_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
         """
