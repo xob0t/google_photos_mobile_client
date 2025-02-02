@@ -12,11 +12,12 @@ def main():
     parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
     parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
     parser.add_argument("--force-upload", action="store_true", help="Upload files regardless of their presence in Google Photos (determined by hash).")
+    parser.add_argument("--delete-from-host", action="store_true", help="Delete uploaded files from source path.")
     parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
     parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
 
     args = parser.parse_args()
 
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
-    output = client.upload(target=args.path, show_progress=args.progress, recursive=args.recursive, threads=args.threads, force_upload=args.force_upload)
+    output = client.upload(target=args.path, show_progress=args.progress, recursive=args.recursive, threads=args.threads, force_upload=args.force_upload, delete_from_host=args.delete_from_host)
     print(output)
