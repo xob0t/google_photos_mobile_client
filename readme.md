@@ -95,7 +95,7 @@ You only need to do it once.
   3. Try `Android App via Frida` interception method in HTTP Toolkit.
 
 - __403 Response Status__  
-  - Try Google Photos ReVanced. Patch it yourself or use a patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases)  
+  - Try intercepting Google Photos ReVanced. Patch it yourself or use a patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases)  
     It uses an alternative to google services, and the format of the auth request is a bit different.
 
 ## My Other Google Photos Scripts And Tools
