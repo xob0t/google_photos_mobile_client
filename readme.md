@@ -5,19 +5,14 @@ Made for uploading files as Pixel XL without relying on a physical device/emulat
 
 ---
 
-## Set Up
+## Installation
 
-Install with git and pip:
-
-```bash
-pip install git+https://github.com/xob0t/gphotos_mobile_client --force-reinstall
-```
-
-OR download as zip and intall with pip:
+Run the command:
 
 ```bash
-pip install gphotos_mobile_client.zip
+pip install https://github.com/xob0t/google_photos_mobile_client/archive/refs/heads/main.zip --force-reinstall
 ```
+
 
 ## Example Usage
 
@@ -102,3 +97,4 @@ You only need to do it once.
 
 - Disguse any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
 - Manage library with bulk operations: [https://github.com/xob0t/Google-Photos-Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
+
