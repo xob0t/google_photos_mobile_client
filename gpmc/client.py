@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Literal, Iterable
+from typing import Optional, Literal, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import signal
 
@@ -51,14 +51,22 @@ class Client:
         """
         self.logger = utils.create_logger(log_level)
         self.valid_mimetypes = ["image/", "video/"]
-        self.auth_data = auth_data or os.getenv("GP_AUTH_DATA")
         self.timeout = timeout
-
-        if not self.auth_data:
-            raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
+        self.auth_data = self._handle_auth_data(auth_data)
         self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
-    def _upload_file(self, file_path: str | Path, progress: Progress = None, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _handle_auth_data(self, auth_data: Optional[str]) -> str:
+        """Validate and return authentication data."""
+        if auth_data is not None:
+            return auth_data
+
+        env_auth = os.getenv("GP_AUTH_DATA")
+        if env_auth is not None:
+            return env_auth
+
+        raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
+
+    def _upload_file(self, file_path: str | Path, progress: Progress, sha1_hash: Optional[bytes | str] = None, show_progress: bool = False, force_upload: bool = False) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -137,13 +145,13 @@ class Client:
 
     def upload(
         self,
-        target: str | Path | Iterable[str | Path],
+        target: str | Path | Sequence[str | Path],
         sha1_hash: Optional[bytes | str] = None,
-        recursive: Optional[bool] = False,
-        show_progress: Optional[bool] = False,
-        threads: Optional[int] = 1,
-        force_upload: Optional[int] = False,
-        delete_from_host: Optional[bool] = False,
+        recursive: bool = False,
+        show_progress: bool = False,
+        threads: int = 1,
+        force_upload: bool = False,
+        delete_from_host: bool = False,
     ) -> dict[str, str]:
         """
         Upload one or more files or directories to Google Photos.
@@ -153,11 +161,13 @@ class Client:
             sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
                         Used to skip hash calculation. Only applies when uploading a single file.
             recursive: Whether to recursively search for media files in subdirectories.
-                          Only applies when uploading directories. Defaults to True.
-            show_progress: Whether to display upload progress in the console. Defaults to True.
+                          Only applies when uploading directories. Defaults to False.
+            show_progress: Whether to display upload progress in the console. Defaults to False.
             threads: Number of concurrent upload threads for multiple files. Defaults to 1.
             force_upload: Whether to upload files even if they're already present in
                              Google Photos (based on hash). Defaults to False.
+            delete_from_host: Whether to delete the file from the host after successful upload.
+                             Defaults to False.
 
         Returns:
             A dictionary mapping absolute file paths to their Google Photos media keys.
@@ -169,7 +179,7 @@ class Client:
         if isinstance(target, (str, Path)):
             target = [target]
 
-        if not isinstance(target, Iterable) or not all(isinstance(p, (str, Path)) for p in target):
+        if not isinstance(target, Sequence) or not all(isinstance(p, (str, Path)) for p in target):
             raise TypeError("`target` must be a file path, a directory path, or an iterable of such paths.")
 
         # Expand all paths to a flat list of files
@@ -196,7 +206,7 @@ class Client:
         Args:
             path: File or directory path to search for media files.
             recursive: Whether to search subdirectories recursively. Only applies
-                          when path is a directory. Defaults to True.
+                          when path is a directory. Defaults to False.
 
         Returns:
             List of Path objects pointing to valid media files.
@@ -234,7 +244,7 @@ class Client:
 
         return media_files
 
-    def _upload_single(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_single(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: bool = False, force_upload: bool = False) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -264,10 +274,11 @@ class Client:
                     show_progress=show_progress,
                     force_upload=force_upload,
                 )
-            except Exception as e:
-                self.logger.error(f"Error uploading file {file_path}: {e}")
+            except Exception:
+                self.logger.exception(f"Error uploading file {file_path}")
+                raise
 
-    def _upload_multiple(self, paths: Iterable[str | Path], threads: Optional[int] = 1, show_progress: Optional[bool] = False, force_upload: Optional[bool] = False) -> dict[str, str]:
+    def _upload_multiple(self, paths: Sequence[str | Path], threads: int = 1, show_progress: bool = False, force_upload: bool = False) -> dict[str, str]:
         """
         Upload files in parallel to Google Photos.
 
@@ -321,13 +332,14 @@ class Client:
                         overall_progress.advance(overall_task_id)
         return uploaded_files
 
-    def move_to_trash(self, sha1_hashes: str | bytes | Iterable[str | bytes]) -> dict:
+    def move_to_trash(self, sha1_hashes: str | bytes | Sequence[str | bytes]) -> dict:
         """
         Move remote media files to trash.
 
         Args:
             sha1_hashes: A single SHA-1 hash (as bytes or a hexadecimal/Base64-encoded string)
-                        or an iterable of such hashes representing the files to be moved to trash.
+                        or an Sequence of such hashes representing the files to be moved to trash.
+
 
         Returns:
             A BlackboxProtobuf Message containing the response from the API.

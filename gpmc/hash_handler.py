@@ -37,8 +37,8 @@ class HashHandler:
         self.progress = progress
         self.file_progress_id = file_progress_id
         self.show_progress = show_progress
-        self.hash_bytes: Optional[bytes] = None
-        self.hash_b64: Optional[str] = None
+        self.hash_bytes: bytes = b""
+        self.hash_b64: str = ""
         self._process_args(sha1_hash, file_path)
 
     def _process_args(self, sha1_hash: Optional[str | bytes] = None, file_path: Optional[Path] = None) -> None:
