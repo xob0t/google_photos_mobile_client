@@ -1,4 +1,5 @@
 import argparse
+from pprint import pp
 
 from .client import Client
 from .api_methods import DEFAULT_TIMEOUT
@@ -20,4 +21,4 @@ def main():
 
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
     output = client.upload(target=args.path, show_progress=args.progress, recursive=args.recursive, threads=args.threads, force_upload=args.force_upload, delete_from_host=args.delete_from_host)
-    print(output)
+    pp(output)
