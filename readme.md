@@ -5,6 +5,10 @@ Made for uploading files as Pixel XL without relying on a physical device/emulat
 
 ---
 
+## CLI Demo
+
+![cli demo](media/gpmc-demo.webp)
+
 ## Installation
 
 Run the command:
