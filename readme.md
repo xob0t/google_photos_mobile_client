@@ -33,7 +33,7 @@ auth_data = "androidId=216e583113f43c75&app=com.google.android.app..."
 
 
 client = Client(auth_data=auth_data)
-media_key = client.upload(target=path, progress=True)
+media_key = client.upload(target=path, show_progress=True)
 print(media_key)
 
 ```
