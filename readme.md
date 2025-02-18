@@ -29,7 +29,7 @@ pip install https://github.com/xob0t/google_photos_mobile_client/archive/refs/he
 from gpmc import Client
 
 path = "/path/to/media_file.jpg" # file or dir path
-auth_data = "androidId=216e583113f43c75&app=com.google.android.apps.photos&client_sig=34bb24c05e47e0aefa65a58a762171d9b613a680..."
+auth_data = "androidId=216e583113f43c75&app=com.google.android.app..."
 
 
 client = Client(auth_data=auth_data)
@@ -41,11 +41,11 @@ print(media_key)
 ### CLI
 
 ```bash
-gp-upload "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c75&app=com.google.android.apps.photos&client_sig=34bb24c05e47e0aefa65a58a762171d9b613a680..."
+gpmc "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c75&app=com.google.android.app..."
 ```
 
 ```text
-usage: gp-upload [-h] [--auth_data AUTH_DATA] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] path
+usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] path
 
 Google Photos mobile client.
 
@@ -56,11 +56,14 @@ options:
   -h, --help            show this help message and exit
   --auth_data AUTH_DATA
                         Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
+  --album ALBUM         Add uploaded media to a new album with given name.
   --progress            Display upload progress.
   --recursive           Scan the directory recursively.
   --threads THREADS     Number of threads to run uploads with. Defaults to 1.
   --force-upload        Upload files regardless of their presence in Google Photos (determined by hash).
   --delete-from-host    Delete uploaded files from source path.
+  --use-quota           Uploaded files will count against your Google Photos storage quota.
+  --saver               Upload files in storage saver quality.
   --timeout TIMEOUT     Requests timeout, seconds. Defaults to 30.
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the logging level (default: INFO)
@@ -101,4 +104,3 @@ You only need to do it once.
 
 - Disguse any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
 - Manage library with bulk operations: [https://github.com/xob0t/Google-Photos-Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
-
