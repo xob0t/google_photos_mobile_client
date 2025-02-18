@@ -147,6 +147,7 @@ class Client:
         self,
         target: str | Path | Sequence[str | Path],
         sha1_hash: Optional[bytes | str] = None,
+        album_name: Optional[str] = None,
         recursive: bool = False,
         show_progress: bool = False,
         threads: int = 1,
@@ -162,6 +163,7 @@ class Client:
                         Used to skip hash calculation. Only applies when uploading a single file.
             recursive: Whether to recursively search for media files in subdirectories.
                           Only applies when uploading directories. Defaults to False.
+            album_name: If passsed, uploaded media will be added to a new album.
             show_progress: Whether to display upload progress in the console. Defaults to False.
             threads: Number of concurrent upload threads for multiple files. Defaults to 1.
             force_upload: Whether to upload files even if they're already present in
@@ -192,6 +194,11 @@ class Client:
             results = self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
         else:
             results = self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+
+        if album_name:
+            media_keys = list(results.values())
+            self.logger.info(f"Adding {len(media_keys)} media item(s) to album `{album_name}`")
+            self.add_to_album(media_keys, album_name)
 
         if delete_from_host:
             for file_path, _ in results.items():
@@ -356,4 +363,10 @@ class Client:
         dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
         bearer_token = self.auth_response["Auth"]
         response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=bearer_token)
+        return response
+
+    def add_to_album(self, media_keys: Sequence[str], album_name: str) -> dict:
+        """Add media items to a new album with the given name"""
+        bearer_token = self.auth_response["Auth"]
+        response = api_methods.add_media_to_new_album(media_keys=media_keys, album_name=album_name, auth_token=bearer_token)
         return response

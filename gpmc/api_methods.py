@@ -1,4 +1,4 @@
-from typing import Optional, Any, IO, Generator, Literal
+from typing import Optional, Any, IO, Generator, Literal, Sequence
 import time
 from urllib.parse import parse_qs
 from pathlib import Path
@@ -360,6 +360,61 @@ def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: 
     }
     with new_session_with_retries() as session:
         response = session.post("https://photosdata-pa.googleapis.com/6439526531001121323/17490284929287180316", headers=headers, data=serialized_data, timeout=timeout)
+    response.raise_for_status()
+
+    decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+    return decoded_message
+
+
+def add_media_to_new_album(media_keys: Sequence[str], album_name: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict:
+    """Add remote media to a new album
+
+    Args:
+        media_keys (Sequence[str]): Media keys of the media items to be added to album.
+        album_name (str): Album name.
+        auth_token (str): Authentication token.
+        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+
+    Returns:
+        dict: Api response message.
+
+    Raises:
+        requests.HTTPError: If the api request fails.
+    """
+
+    message_type = {
+        "1": {"type": "string"},
+        "2": {"type": "int"},
+        "3": {"type": "int"},
+        "4": {"seen_repeated": True, "field_order": ["1"], "message_typedef": {"1": {"field_order": ["1"], "message_typedef": {"1": {"type": "string"}}, "type": "message"}}, "type": "message"},
+        "6": {"message_typedef": {}, "type": "message"},
+        "7": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
+        "8": {"field_order": ["3", "4", "5"], "message_typedef": {"3": {"type": "string"}, "4": {"type": "string"}, "5": {"type": "int"}}, "type": "message"},
+    }
+
+    proto_body = {
+        "1": album_name,
+        "2": int(time.time()),
+        "3": 1,
+        "4": [{"1": {"1": key}} for key in media_keys],
+        "6": {},
+        "7": {"1": 3},
+        "8": {"3": "Pixel XL", "4": "Google", "5": 28},
+    }
+
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+
+    headers = {
+        "Accept-Encoding": "gzip",
+        "Accept-Language": "en_US",
+        "Content-Type": "application/x-protobuf",
+        "User-Agent": "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)",
+        "Authorization": f"Bearer {auth_token}",
+        "x-goog-ext-173412678-bin": "CgcIAhClARgC",
+        "x-goog-ext-174067345-bin": "CgIIAg==",
+    }
+    with new_session_with_retries() as session:
+        response = session.post("https://photosdata-pa.googleapis.com/6439526531001121323/8386163679468898444", headers=headers, data=serialized_data, timeout=timeout)
     response.raise_for_status()
 
     decoded_message, _ = blackboxprotobuf.decode_message(response.content)

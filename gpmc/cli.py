@@ -9,6 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description="Google Photos mobile client.")
     parser.add_argument("path", type=str, help="Path to the file or directory to upload.")
     parser.add_argument("--auth_data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
+    parser.add_argument("--album", type=str, help="Add uploaded media to a new album with given name.")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
     parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
@@ -20,5 +21,13 @@ def main():
     args = parser.parse_args()
 
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
-    output = client.upload(target=args.path, show_progress=args.progress, recursive=args.recursive, threads=args.threads, force_upload=args.force_upload, delete_from_host=args.delete_from_host)
+    output = client.upload(
+        target=args.path,
+        album_name=args.album,
+        show_progress=args.progress,
+        recursive=args.recursive,
+        threads=args.threads,
+        force_upload=args.force_upload,
+        delete_from_host=args.delete_from_host,
+    )
     pp(output)

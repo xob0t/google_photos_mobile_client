@@ -12,6 +12,14 @@ class TestUpload(unittest.TestCase):
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
 
+    def test_add_to_album(self):
+        """Test add to album."""
+        response = self.client.add_to_album(
+            media_keys=["AF1QipPQJJlcp_XbcSuZojLHg19NLkMiziqdjp2FS-6X", "AF1QipMvXu56uuldoyflKD60lctos9u-8BJ_luropFcZ"],
+            album_name="test1",
+        )
+        print(response)
+
     def test_move_to_trash(self):
         """Test move to trash."""
         response = self.client.move_to_trash(sha1_hashes=self.image_sha1_hash_hxd)
@@ -19,7 +27,7 @@ class TestUpload(unittest.TestCase):
 
     def test_image_upload(self):
         """Test image upload."""
-        media_key = self.client.upload(target=self.image_file_path, force_upload=True, show_progress=True)
+        media_key = self.client.upload(target=self.image_file_path, force_upload=True, show_progress=True, album_name="TEST")
         print(media_key)
 
     def test_directory_uplod(self):
