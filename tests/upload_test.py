@@ -27,7 +27,7 @@ class TestUpload(unittest.TestCase):
 
     def test_image_upload(self):
         """Test image upload."""
-        media_key = self.client.upload(target=self.image_file_path, force_upload=True, show_progress=True, album_name="TEST")
+        media_key = self.client.upload(target=self.image_file_path, force_upload=True, show_progress=True, saver=True, use_quota=True)
         print(media_key)
 
     def test_directory_uplod(self):

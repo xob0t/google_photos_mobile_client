@@ -11,19 +11,19 @@ from .exceptions import UploadRejected
 DEFAULT_TIMEOUT = 30
 
 
-def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict[str, str]:
+def get_auth_token(auth_data: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, str]:
     """
     Send auth request to get bearer token.
 
     Args:
-        auth_data (str): URL-encoded authentication data.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        auth_data: URL-encoded authentication data.
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         Dict[str, str]: Parsed authentication response with token and other details.
 
     Raises:
-        requests.HTTPError: If the authentication request fails.
+        requests.HTTPError: If the api request fails.
     """
     auth_data_dict = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(auth_data).items()}
 
@@ -68,21 +68,21 @@ def get_auth_token(auth_data: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> 
     return parsed_auth_response
 
 
-def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> str:
+def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> str:
     """
     Obtain an upload token from the Google Photos API.
 
     Args:
-        sha_hash_b64 (str): Base64-encoded SHA-1 hash of the file.
-        file_size (int): Size of the file in bytes.
-        auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        sha_hash_b64: Base64-encoded SHA-1 hash of the file.
+        file_size: Size of the file in bytes.
+        auth_token: Authentication token.
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         str: Upload token for the file.
 
     Raises:
-        requests.HTTPError: If the upload token request fails.
+        requests.HTTPError: If the api request fails.
     """
     message_type = {"1": {"type": "int"}, "2": {"type": "int"}, "3": {"type": "int"}, "4": {"type": "int"}, "7": {"type": "int"}}
     proto_body = {"1": 2, "2": 2, "3": 1, "4": 3, "7": file_size}
@@ -104,20 +104,20 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
     return response.headers["X-GUploader-UploadID"]
 
 
-def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> Optional[str]:
+def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> Optional[str]:
     """
     Check library for existing files with the hash.
 
     Args:
-        sha1_hash (bytes): SHA-1 hash of the file.
-        auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        sha1_hash: SHA-1 hash of the file.
+        auth_token: Authentication token.
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
-        Optional[str]: Media key of the existing file, or None if not found.
+        str: Media key of the existing file, or None if not found.
 
     Raises:
-        requests.HTTPError: If the media search request fails.
+        requests.HTTPError: If the api request fails.
     """
     message_type = {"1": {"field_order": ["1", "2"], "message_typedef": {"1": {"field_order": ["1"], "message_typedef": {"1": {"type": "bytes"}}, "type": "message"}, "2": {"message_typedef": {}, "type": "message"}}, "type": "message"}}
     proto_body = {"1": {"1": {"1": sha1_hash}, "2": {}}}
@@ -138,23 +138,22 @@ def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: Option
     return media_key
 
 
-def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict:
+def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """
     Upload a file to Google Photos.
 
     Args:
-        file (Union[str, Path, bytes, IO[bytes], Generator[bytes, None, None]]):
-            The file to upload. Can be a path (str or Path), bytes, BufferedReader, or a generator yielding bytes.
-        upload_token (str): Upload token from `get_upload_token()`.
-        auth_token (str): Auth token from `get_auth_token()`.
-        progress (bool, optional): Display upload progress. Defaults to False.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        file: The file to upload. Can be a path (str or Path), bytes, BufferedReader, or a generator yielding bytes.
+        upload_token Upload token from `get_upload_token()`.
+        auth_token: Auth token from `get_auth_token()`.
+        progress: Display upload progress.
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         dict: Decoded upload response.
 
     Raises:
-        requests.HTTPError: If the file upload fails.
+        requests.HTTPError: If the api request fails.
     """
 
     headers = {
@@ -192,30 +191,30 @@ def finalize_upload(
     file_name: str,
     sha1_hash: bytes,
     auth_token: str,
-    quality: Optional[Literal["original", "saver"]] = "original",
-    make: Optional[str] = "Google",
-    model: Optional[str] = "Pixel XL",
+    quality: Literal["original", "saver"] = "original",
+    make: str = "Google",
+    model: str = "Pixel XL",
     upload_timestamp: Optional[int] = None,
-    timeout: Optional[int] = DEFAULT_TIMEOUT,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     """
     Finalize the upload by sending the complete message to the API.
 
     Args:
-        upload_response_decoded (Dict[str, Any]): Decoded upload response.
-        file_name (str): Name of the uploaded file.
-        sha1_hash (bytes): SHA-1 hash of the file.
-        auth_token (str): Authentication token.
-        quality (Optional[Literal["saver", "original"]], optional): Quality setting for the upload. Defaults to "original".
-        make (Optional[str], optional): Device manufacturer name. Defaults to "Google".
-        model (Optional[str], optional): Device model name. Defaults to "Pixel XL".
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        upload_response_decoded: Decoded upload response.
+        file_name: Name of the uploaded file.
+        sha1_hash: SHA-1 hash of the file.
+        auth_token: Authentication token.
+        quality: Quality setting for the upload. Defaults to "original".
+        make: Device manufacturer name. Defaults to "Google".
+        model: Device model name. Defaults to "Pixel XL".
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         str: Media key of the uploaded file.
 
     Raises:
-        requests.HTTPError: If the finalization request fails.
+        requests.HTTPError: If the api request fails.
     """
 
     quality_map = {"saver": 1, "original": 3}
@@ -304,20 +303,20 @@ def finalize_upload(
     return media_key
 
 
-def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict:
+def move_remote_media_to_trash(dedup_keys: Sequence[str], auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """
     Move remote media items to the trash using deduplication keys.
 
     Args:
-        dedup_keys (List[str]): List of deduplication keys for the media items to be trashed.
-        auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        dedup_keys: Deduplication keys for the media items to be trashed.
+        auth_token: Authentication token.
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         dict: Api response message.
 
     Raises:
-        requests.HTTPError: If the trash operation request fails.
+        requests.HTTPError: If the api request fails.
     """
 
     message_type = {
@@ -366,14 +365,14 @@ def move_remote_media_to_trash(dedup_keys: list[str], auth_token: str, timeout: 
     return decoded_message
 
 
-def add_media_to_new_album(media_keys: Sequence[str], album_name: str, auth_token: str, timeout: Optional[int] = DEFAULT_TIMEOUT) -> dict:
+def add_media_to_new_album(media_keys: Sequence[str], album_name: str, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """Add remote media to a new album
 
     Args:
-        media_keys (Sequence[str]): Media keys of the media items to be added to album.
-        album_name (str): Album name.
-        auth_token (str): Authentication token.
-        timeout (Optional[int], optional): Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+        media_keys: Media keys of the media items to be added to album.
+        album_name: Album name.
+        auth_token: Authentication token.
+        timeout: Request timeout in seconds. Defaults to DEFAULT_TIMEOUT.
 
     Returns:
         dict: Api response message.

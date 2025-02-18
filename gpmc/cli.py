@@ -15,6 +15,8 @@ def main():
     parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
     parser.add_argument("--force-upload", action="store_true", help="Upload files regardless of their presence in Google Photos (determined by hash).")
     parser.add_argument("--delete-from-host", action="store_true", help="Delete uploaded files from source path.")
+    parser.add_argument("--use-quota", action="store_true", help="Uploaded files will count against your Google Photos storage quota.")
+    parser.add_argument("--saver", action="store_true", help="Upload files in storage saver quality.")
     parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
     parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
 
@@ -24,6 +26,8 @@ def main():
     output = client.upload(
         target=args.path,
         album_name=args.album,
+        use_quota=args.use_quota,
+        saver=args.saver,
         show_progress=args.progress,
         recursive=args.recursive,
         threads=args.threads,

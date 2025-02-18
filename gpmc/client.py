@@ -34,7 +34,7 @@ DEFAULT_TIMEOUT = api_methods.DEFAULT_TIMEOUT
 class Client:
     """Reverse engineered Google Photos mobile API client."""
 
-    def __init__(self, auth_data: Optional[str] = None, timeout: Optional[int] = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
+    def __init__(self, auth_data: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
         """
         Initialize the Google Photos mobile client.
 
@@ -56,7 +56,18 @@ class Client:
         self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
 
     def _handle_auth_data(self, auth_data: Optional[str]) -> str:
-        """Validate and return authentication data."""
+        """
+        Validate and return authentication data.
+
+        Args:
+            auth_data: Authentication data string.
+
+        Returns:
+            str: Validated authentication data.
+
+        Raises:
+            ValueError: If no auth_data is provided and GP_AUTH_DATA environment variable is not set.
+        """
         if auth_data is not None:
             return auth_data
 
@@ -66,21 +77,23 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, progress: Progress, sha1_hash: Optional[bytes | str] = None, show_progress: bool = False, force_upload: bool = False) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, progress: Progress, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: Optional[bytes | str] = None) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
         Args:
             file_path: Path to the file to upload, can be string or Path object.
-            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
+            progress: Rich Progress object for tracking upload progress.
             show_progress: Whether to display upload progress in the console.
-                         Defaults to False.
-            force_upload: Whether to upload the file even if it's already present
-                             in Google Photos (based on hash). Defaults to False.
+            force_upload: Whether to upload the file even if it's already present in Google Photos (based on hash).
+            use_quota: Uploaded files will count against your Google Photos storage quota.
+            saver: Upload files in storage saver quality.
+            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string,
+                                               or a Base64-encoded string. Defaults to None.
 
         Returns:
-            A dictionary mapping the absolute file path to its Google Photos media key.
-            Example: {"/absolute/path/to/photo.jpg": "media_key_123"}
+            dict[str, str]: A dictionary mapping the absolute file path to its Google Photos media key.
+                           Example: {"/absolute/path/to/photo.jpg": "media_key_123"}
 
         Raises:
             FileNotFoundError: If the file does not exist.
@@ -112,6 +125,13 @@ class Client:
                 upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
             progress.update(task_id=file_progress_id, description=f"Finalizing Upload: {file_path.name}")
             last_modified_timestamp = int(os.path.getmtime(file_path))
+            model = "Pixel XL"
+            quality = "original"
+            if saver:
+                quality = "saver"
+                model = "Pixel 2"
+            if use_quota:
+                model = "Pixel 8"
             media_key = api_methods.finalize_upload(
                 upload_response_decoded=upload_response,
                 file_name=file_path.name,
@@ -119,6 +139,8 @@ class Client:
                 auth_token=bearer_token,
                 upload_timestamp=last_modified_timestamp,
                 timeout=self.timeout,
+                model=model,
+                quality=quality,
             )
             return {file_path.absolute().as_posix(): media_key}
         finally:
@@ -129,10 +151,11 @@ class Client:
         Get a Google Photos media key by media's hash.
 
         Args:
-            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
+            sha1_hash The file's SHA-1 hash, represented as bytes, a hexadecimal string,
+                                     or a Base64-encoded string.
 
         Returns:
-            The Google Photos media key if the hash is found, otherwise None.
+            str | None: The Google Photos media key if the hash is found, otherwise None.
         """
         hash_hand = HashHandler(sha1_hash=sha1_hash)
 
@@ -148,6 +171,8 @@ class Client:
         target: str | Path | Sequence[str | Path],
         sha1_hash: Optional[bytes | str] = None,
         album_name: Optional[str] = None,
+        use_quota: bool = False,
+        saver: bool = False,
         recursive: bool = False,
         show_progress: bool = False,
         threads: int = 1,
@@ -159,24 +184,31 @@ class Client:
 
         Args:
             target: A file path, directory path, or an iterable of such paths to upload.
-            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string, or a Base64-encoded string.
-                        Used to skip hash calculation. Only applies when uploading a single file.
-            recursive: Whether to recursively search for media files in subdirectories.
-                          Only applies when uploading directories. Defaults to False.
-            album_name: If passsed, uploaded media will be added to a new album.
+            sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string,
+                                               or a Base64-encoded string. Used to skip hash calculation.
+                                               Only applies when uploading a single file. Defaults to None.
+            album_name: If provided, uploaded media will be added to a new album. Defaults to None.
+            use_quota: Uploaded files will count against your Google Photos storage quota. Defaults to False.
+            saver: Upload files in storage saver quality. Defaults to False.
+            recursive Whether to recursively search for media files in subdirectories.
+                             Only applies when uploading directories. Defaults to False.
             show_progress: Whether to display upload progress in the console. Defaults to False.
             threads: Number of concurrent upload threads for multiple files. Defaults to 1.
             force_upload: Whether to upload files even if they're already present in
-                             Google Photos (based on hash). Defaults to False.
+                                 Google Photos (based on hash). Defaults to False.
             delete_from_host: Whether to delete the file from the host after successful upload.
-                             Defaults to False.
+                                     Defaults to False.
 
         Returns:
-            A dictionary mapping absolute file paths to their Google Photos media keys.
-            Example: {
-                "/path/to/photo1.jpg": "media_key_123",
-                "/path/to/photo2.jpg": "media_key_456"
-            }
+            dict[str, str]: A dictionary mapping absolute file paths to their Google Photos media keys.
+                            Example: {
+                                "/path/to/photo1.jpg": "media_key_123",
+                                "/path/to/photo2.jpg": "media_key_456"
+                            }
+
+        Raises:
+            TypeError: If `target` is not a file path, directory path, or an iterable of such paths.
+            ValueError: If no valid media files are found to upload.
         """
         if isinstance(target, (str, Path)):
             target = [target]
@@ -191,9 +223,23 @@ class Client:
             raise ValueError("No valid media files found to upload.")
 
         if len(files_to_upload) == 1:
-            results = self._upload_single(files_to_upload[0], sha1_hash=sha1_hash, show_progress=show_progress, force_upload=force_upload)
+            results = self._upload_single(
+                files_to_upload[0],
+                sha1_hash=sha1_hash,
+                show_progress=show_progress,
+                force_upload=force_upload,
+                use_quota=use_quota,
+                saver=saver,
+            )
         else:
-            results = self._upload_multiple(files_to_upload, threads=threads, show_progress=show_progress, force_upload=force_upload)
+            results = self._upload_multiple(
+                files_to_upload,
+                threads=threads,
+                show_progress=show_progress,
+                force_upload=force_upload,
+                use_quota=use_quota,
+                saver=saver,
+            )
 
         if album_name:
             media_keys = list(results.values())
@@ -206,17 +252,17 @@ class Client:
                 os.remove(file_path)
         return results
 
-    def _search_for_media_files(self, path: str | Path, recursive: Optional[bool] = False) -> list[Path]:
+    def _search_for_media_files(self, path: str | Path, recursive: bool) -> list[Path]:
         """
         Search for valid media files in the specified path.
 
         Args:
             path: File or directory path to search for media files.
             recursive: Whether to search subdirectories recursively. Only applies
-                          when path is a directory. Defaults to False.
+                             when path is a directory.
 
         Returns:
-            List of Path objects pointing to valid media files.
+            list[Path]: List of Path objects pointing to valid media files.
 
         Raises:
             ValueError: If the path is invalid, or if no valid media files are found,
@@ -251,18 +297,21 @@ class Client:
 
         return media_files
 
-    def _upload_single(self, file_path: str | Path, sha1_hash: Optional[bytes | str] = None, show_progress: bool = False, force_upload: bool = False) -> dict[str, str]:
+    def _upload_single(self, file_path: str | Path, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: Optional[bytes | str] = None) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
         Args:
-            file_path: Path to the file to upload
-            sha1_hash: The file's SHA-1 hash for skipping hash calculation
-            show_progress: Whether to show progress
-            force_upload: Whether to force upload even if file exists
+            file_path: Path to the file to upload.
+            show_progress: Whether to show progress.
+            force_upload: Whether to force upload even if file exists.
+            use_quota: Uploaded files will count against your Google Photos storage quota.
+            saver: Upload files in storage saver quality.
+            sha1_hash: The file's SHA-1 hash for skipping hash calculation.
+                                               Defaults to None.
 
         Returns:
-            Dictionary mapping file path to media key
+            dict[str, str]: Dictionary mapping file path to media key.
         """
         file_progress = Progress(
             DownloadColumn(),
@@ -280,24 +329,28 @@ class Client:
                     sha1_hash=sha1_hash,
                     show_progress=show_progress,
                     force_upload=force_upload,
+                    use_quota=use_quota,
+                    saver=saver,
                 )
             except Exception:
                 self.logger.exception(f"Error uploading file {file_path}")
                 raise
 
-    def _upload_multiple(self, paths: Sequence[str | Path], threads: int = 1, show_progress: bool = False, force_upload: bool = False) -> dict[str, str]:
+    def _upload_multiple(self, paths: Sequence[str | Path], threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool) -> dict[str, str]:
         """
         Upload files in parallel to Google Photos.
 
         Args:
             paths: Iterable of file paths to upload.
-            threads: Number of concurrent upload threads to use. Defaults to 1.
-            show_progress: Whether to display upload progress in the console. Defaults to False.
+            threads Number of concurrent upload threads to use.
+            show_progress : Whether to display upload progress in the console. Defaults to False.
             force_upload: Whether to upload files even if they're already present in
-                             Google Photos (based on hash). Defaults to False.
+                                Google Photos (based on hash). Defaults to False.
+            use_quota: Uploaded files will count against your Google Photos storage quota.
+            saver: Upload files in storage saver quality.
 
         Returns:
-            A dictionary mapping absolute file paths to their Google Photos media keys.
+            dict[str, str]: A dictionary mapping absolute file paths to their Google Photos media keys.
 
         Note:
             Failed uploads are logged as errors but don't stop the overall process.
@@ -325,7 +378,7 @@ class Client:
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(paths), visible=show_progress)
         with Live(progress_group, refresh_per_second=20):
             with ThreadPoolExecutor(max_workers=threads) as executor:
-                futures = {executor.submit(self._upload_file, file, progress=file_progress, show_progress=show_progress, force_upload=force_upload): file for file in paths}
+                futures = {executor.submit(self._upload_file, file, progress=file_progress, show_progress=show_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): file for file in paths}
                 for future in as_completed(futures):
                     file = futures[future]
                     try:
@@ -347,9 +400,8 @@ class Client:
             sha1_hashes: A single SHA-1 hash (as bytes or a hexadecimal/Base64-encoded string)
                         or an Sequence of such hashes representing the files to be moved to trash.
 
-
         Returns:
-            A BlackboxProtobuf Message containing the response from the API.
+            dict: A BlackboxProtobuf Message containing the response from the API.
 
         Raises:
             ValueError: If the input hashes are invalid.
@@ -366,7 +418,19 @@ class Client:
         return response
 
     def add_to_album(self, media_keys: Sequence[str], album_name: str) -> dict:
-        """Add media items to a new album with the given name"""
+        """
+        Add media items to a new album with the given name.
+
+        Args:
+            media_keys: Media keys of the media items to be added to album.
+            album_name: Album name.
+
+        Returns:
+            dict: A BlackboxProtobuf Message containing the response from the API.
+
+        Raises:
+            requests.HTTPError: If the API request fails.
+        """
         bearer_token = self.auth_response["Auth"]
         response = api_methods.add_media_to_new_album(media_keys=media_keys, album_name=album_name, auth_token=bearer_token)
         return response
