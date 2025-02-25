@@ -16,7 +16,8 @@ class TestUpload(unittest.TestCase):
         """Test add to album."""
         response = self.client.add_to_album(
             media_keys=["AF1QipPQJJlcp_XbcSuZojLHg19NLkMiziqdjp2FS-6X", "AF1QipMvXu56uuldoyflKD60lctos9u-8BJ_luropFcZ"],
-            album_name="test1",
+            album_name="TEST",
+            show_progress=True,
         )
         print(response)
 

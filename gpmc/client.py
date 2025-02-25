@@ -243,8 +243,7 @@ class Client:
 
         if album_name:
             media_keys = list(results.values())
-            self.logger.info(f"Adding {len(media_keys)} media item(s) to album `{album_name}`")
-            self.add_to_album(media_keys, album_name)
+            self.add_to_album(media_keys, album_name, show_progress=show_progress)
 
         if delete_from_host:
             for file_path, _ in results.items():
@@ -417,20 +416,56 @@ class Client:
         response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=bearer_token)
         return response
 
-    def add_to_album(self, media_keys: Sequence[str], album_name: str) -> dict:
+    def add_to_album(self, media_keys: Sequence[str], album_name: str, show_progress: bool) -> list[str]:
         """
-        Add media items to a new album with the given name.
+        Add media items to one or more albums with the given name. If the total number of items exceeds the album limit,
+        additional albums with numbered suffixes are created. The first album will also have a suffix if there are multiple albums.
 
         Args:
             media_keys: Media keys of the media items to be added to album.
             album_name: Album name.
 
         Returns:
-            dict: A BlackboxProtobuf Message containing the response from the API.
+            list[str]: A list of album media keys for all created albums.
 
         Raises:
             requests.HTTPError: If the API request fails.
+            ValueError: If media_keys is empty.
         """
+
         bearer_token = self.auth_response["Auth"]
-        response = api_methods.add_media_to_new_album(media_keys=media_keys, album_name=album_name, auth_token=bearer_token)
-        return response
+        album_limit = 25  # Maximum number of items per album
+        batch_size = 40  # Number of items to process per API call
+        album_keys = []
+        album_counter = 1
+
+        if len(media_keys) > album_limit:
+            self.logger.warning(f"{len(media_keys)} items exceed the album limit of {album_limit}. They will be split into multiple albums.")
+
+        # Initialize progress bar
+        progress = Progress(
+            TextColumn("[bold yellow]{task.description}"),
+            SpinnerColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+        )
+        task = progress.add_task("Adding items to albums:", total=len(media_keys), visible=show_progress)
+
+        with Live(progress):
+            for i in range(0, len(media_keys), album_limit):
+                album_batch = media_keys[i : i + album_limit]
+                # Add a suffix if media_keys will not fit into a single album
+                current_album_name = f"{album_name} {album_counter}" if len(media_keys) > album_limit else album_name
+                current_album_key = None
+                for j in range(0, len(album_batch), batch_size):
+                    batch = album_batch[j : j + batch_size]
+                    if current_album_key is None:
+                        # Create the album with the first batch
+                        current_album_key = api_methods.create_new_album(album_name=current_album_name, media_keys=batch, auth_token=bearer_token)
+                        album_keys.append(current_album_key)
+                    else:
+                        # Add to the existing album
+                        api_methods.add_media_to_album(album_media_key=current_album_key, media_keys=batch, auth_token=bearer_token)
+                    progress.update(task, advance=len(batch))
+                album_counter += 1
+        return album_keys
