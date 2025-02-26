@@ -438,12 +438,12 @@ class Client:
 
         # Initialize progress bar
         progress = Progress(
-            TextColumn("[bold yellow]{task.description}"),
+            TextColumn("{task.description}"),
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
         )
-        task = progress.add_task("Adding items to albums:", total=len(media_keys), visible=show_progress)
+        task = progress.add_task(f"[bold yellow]Adding items to album[/bold yellow] [cyan]{album_name}[/cyan]:", total=len(media_keys), visible=show_progress)
 
         with Live(progress):
             for i in range(0, len(media_keys), album_limit):
