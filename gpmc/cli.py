@@ -6,10 +6,21 @@ from .api_methods import DEFAULT_TIMEOUT
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Google Photos mobile client.")
+    parser = argparse.ArgumentParser(description="Google Photos mobile client.", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("path", type=str, help="Path to the file or directory to upload.")
     parser.add_argument("--auth_data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
-    parser.add_argument("--album", type=str, help="Add uploaded media to a new album with given name.")
+    parser.add_argument(
+        "--album",
+        type=str,
+        help=(
+            "Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.\n"
+            "Example:\n"
+            "When uploading '/foo':\n"
+            "'/foo/image1.jpg' goes to 'foo'\n"
+            "'/foo/bar/image2.jpg' goes to 'bar'\n"
+            "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
+        ),
+    )
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
     parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")

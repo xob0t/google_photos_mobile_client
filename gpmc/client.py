@@ -163,6 +163,37 @@ class Client:
         hash_hand = HashHandler(sha1_hash=sha1_hash)
         return api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=self.bearer_token, timeout=self.timeout)
 
+    def _handle_album_creation(self, results: dict[str, str], album_name: str, show_progress: bool) -> None:
+        """
+        Handle album creation based on the provided album_name.
+
+        Args:
+            results: A dictionary mapping file paths to their Google Photos media keys.
+            album_name: The name of the album to create. If set to "AUTO", albums will be
+                    created based on the immediate parent directory of each file.
+            show_progress: Whether to display progress in the console.
+
+        Returns:
+            None
+        """
+        if album_name != "AUTO":
+            # Add all media keys to the specified album
+            media_keys = list(results.values())
+            self.add_to_album(media_keys, album_name, show_progress=show_progress)
+            return
+
+        # Group media keys by the full path of their parent directory
+        media_keys_by_album = {}
+        for file_path, media_key in results.items():
+            parent_dir = Path(file_path).parent.resolve().as_posix()
+            if parent_dir not in media_keys_by_album:
+                media_keys_by_album[parent_dir] = []
+            media_keys_by_album[parent_dir].append(media_key)
+
+        for parent_dir, media_keys in media_keys_by_album.items():
+            album_name_from_path = Path(parent_dir).name  # Use the directory name as the album name
+            self.add_to_album(media_keys, album_name_from_path, show_progress=show_progress)
+
     def upload(
         self,
         target: str | Path | Sequence[str | Path],
@@ -184,7 +215,17 @@ class Client:
             sha1_hash: The file's SHA-1 hash, represented as bytes, a hexadecimal string,
                                                or a Base64-encoded string. Used to skip hash calculation.
                                                Only applies when uploading a single file. Defaults to None.
-            album_name: If provided, uploaded media will be added to a new album. Defaults to None.
+            album_name:
+                If provided, the uploaded media will be added to a new album.
+                If set to "AUTO", albums will be created based on the immediate parent directory of each file.
+
+                "AUTO" Example:
+                    - When uploading '/foo':
+                        - '/foo/image1.jpg' will be placed in a 'foo' album.
+                        - '/foo/bar/image2.jpg' will be placed in a 'bar' album.
+                        - '/foo/bar/foo/image3.jpg' will be placed in a 'foo' album, distinct from the first 'foo' album.
+
+                Defaults to None.
             use_quota: Uploaded files will count against your Google Photos storage quota. Defaults to False.
             saver: Upload files in storage saver quality. Defaults to False.
             recursive: Whether to recursively search for media files in subdirectories.
@@ -239,8 +280,7 @@ class Client:
             )
 
         if album_name:
-            media_keys = list(results.values())
-            self.add_to_album(media_keys, album_name, show_progress=show_progress)
+            self._handle_album_creation(results, album_name, show_progress)
 
         if delete_from_host:
             for file_path, _ in results.items():
