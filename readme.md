@@ -17,7 +17,6 @@ Run the command:
 pip install https://github.com/xob0t/google_photos_mobile_client/archive/refs/heads/main.zip --force-reinstall
 ```
 
-
 ## Example Usage
 
 > [!NOTE]
@@ -37,7 +36,7 @@ output = client.upload(target=path, show_progress=True)
 
 print(output)
 
-# {"/absolute/path/to/photo.jpg": "google_photos_media_key"}
+# {"/absolute/path/to/media_file.jpg": "google_photos_media_key"}
 
 ```
 
@@ -59,7 +58,12 @@ options:
   -h, --help            show this help message and exit
   --auth_data AUTH_DATA
                         Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
-  --album ALBUM         Add uploaded media to a new album with given name.
+  --album ALBUM         Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.
+                        Example:
+                        When uploading '/foo':
+                        '/foo/image1.jpg' goes to 'foo'
+                        '/foo/bar/image2.jpg' goes to 'bar'
+                        '/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)
   --progress            Display upload progress.
   --recursive           Scan the directory recursively.
   --threads THREADS     Number of threads to run uploads with. Defaults to 1.
