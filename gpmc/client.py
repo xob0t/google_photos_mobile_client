@@ -428,8 +428,8 @@ class Client:
             requests.HTTPError: If the API request fails.
             ValueError: If media_keys is empty.
         """
-        album_limit = 25  # Maximum number of items per album
-        batch_size = 40  # Number of items to process per API call
+        album_limit = 20000  # Maximum number of items per album
+        batch_size = 500  # Number of items to process per API call
         album_keys = []
         album_counter = 1
 
