@@ -53,7 +53,16 @@ class Client:
         self.valid_mimetypes = ["image/", "video/"]
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
-        self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
+        self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
+
+    @property
+    def bearer_token(self) -> str:
+        """Property that automatically checks and renews the auth token if expired."""
+        if int(self.auth_response_cache.get("Expiry", "0")) <= int(time.time()):
+            self.auth_response_cache = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
+        if token := self.auth_response_cache.get("Auth", ""):
+            return token
+        raise RuntimeError("Auth response does not counain bearer token")
 
     def _handle_auth_data(self, auth_data: Optional[str]) -> str:
         """
@@ -103,26 +112,20 @@ class Client:
         file_path = Path(file_path)
         file_size = file_path.stat().st_size
 
-        if int(self.auth_response["Expiry"]) <= int(time.time()):
-            # get a new token if current is expired
-            self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
-
-        bearer_token = self.auth_response["Auth"]
-
         file_progress_id = progress.add_task(description="placeholder", visible=False)
         try:
             hash_hand = HashHandler(sha1_hash=sha1_hash, file_path=file_path, progress=progress, file_progress_id=file_progress_id, show_progress=show_progress)
 
             if not force_upload:
                 progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}", visible=show_progress)
-                if remote_media_key := api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=bearer_token, timeout=self.timeout):
+                if remote_media_key := api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=self.bearer_token, timeout=self.timeout):
                     return {file_path.absolute().as_posix(): remote_media_key}
 
-            upload_token = api_methods.get_upload_token(hash_hand.hash_b64, file_size, auth_token=bearer_token, timeout=self.timeout)
+            upload_token = api_methods.get_upload_token(hash_hand.hash_b64, file_size, auth_token=self.bearer_token, timeout=self.timeout)
             progress.reset(task_id=file_progress_id)
             progress.update(task_id=file_progress_id, description=f"Uploading: {file_path.name}", visible=show_progress)
             with progress.open(file_path, "rb", task_id=file_progress_id) as file:
-                upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=bearer_token, timeout=self.timeout)
+                upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=self.bearer_token, timeout=self.timeout)
             progress.update(task_id=file_progress_id, description=f"Finalizing Upload: {file_path.name}")
             last_modified_timestamp = int(os.path.getmtime(file_path))
             model = "Pixel XL"
@@ -136,7 +139,7 @@ class Client:
                 upload_response_decoded=upload_response,
                 file_name=file_path.name,
                 sha1_hash=hash_hand.hash_bytes,
-                auth_token=bearer_token,
+                auth_token=self.bearer_token,
                 upload_timestamp=last_modified_timestamp,
                 timeout=self.timeout,
                 model=model,
@@ -158,13 +161,7 @@ class Client:
             str | None: The Google Photos media key if the hash is found, otherwise None.
         """
         hash_hand = HashHandler(sha1_hash=sha1_hash)
-
-        if int(self.auth_response["Expiry"]) <= int(time.time()):
-            # get a new token if current is expired
-            self.auth_response = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
-
-        bearer_token = self.auth_response["Auth"]
-        return api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=bearer_token, timeout=self.timeout)
+        return api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=self.bearer_token, timeout=self.timeout)
 
     def upload(
         self,
@@ -412,8 +409,7 @@ class Client:
 
         hashes_b64 = [HashHandler(sha1_hash=hash).hash_b64 for hash in sha1_hashes]
         dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
-        bearer_token = self.auth_response["Auth"]
-        response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=bearer_token)
+        response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=self.bearer_token)
         return response
 
     def add_to_album(self, media_keys: Sequence[str], album_name: str, show_progress: bool) -> list[str]:
@@ -432,8 +428,6 @@ class Client:
             requests.HTTPError: If the API request fails.
             ValueError: If media_keys is empty.
         """
-
-        bearer_token = self.auth_response["Auth"]
         album_limit = 25  # Maximum number of items per album
         batch_size = 40  # Number of items to process per API call
         album_keys = []
@@ -461,11 +455,11 @@ class Client:
                     batch = album_batch[j : j + batch_size]
                     if current_album_key is None:
                         # Create the album with the first batch
-                        current_album_key = api_methods.create_new_album(album_name=current_album_name, media_keys=batch, auth_token=bearer_token)
+                        current_album_key = api_methods.create_new_album(album_name=current_album_name, media_keys=batch, auth_token=self.bearer_token)
                         album_keys.append(current_album_key)
                     else:
                         # Add to the existing album
-                        api_methods.add_media_to_album(album_media_key=current_album_key, media_keys=batch, auth_token=bearer_token)
+                        api_methods.add_media_to_album(album_media_key=current_album_key, media_keys=batch, auth_token=self.bearer_token)
                     progress.update(task, advance=len(batch))
                 album_counter += 1
         return album_keys
