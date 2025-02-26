@@ -62,7 +62,7 @@ class Client:
             self.auth_response_cache = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
         if token := self.auth_response_cache.get("Auth", ""):
             return token
-        raise RuntimeError("Auth response does not counain bearer token")
+        raise RuntimeError("Auth response does not contain bearer token")
 
     def _handle_auth_data(self, auth_data: Optional[str]) -> str:
         """
@@ -187,14 +187,14 @@ class Client:
             album_name: If provided, uploaded media will be added to a new album. Defaults to None.
             use_quota: Uploaded files will count against your Google Photos storage quota. Defaults to False.
             saver: Upload files in storage saver quality. Defaults to False.
-            recursive Whether to recursively search for media files in subdirectories.
-                             Only applies when uploading directories. Defaults to False.
+            recursive: Whether to recursively search for media files in subdirectories.
+                                Only applies when uploading directories. Defaults to False.
             show_progress: Whether to display upload progress in the console. Defaults to False.
             threads: Number of concurrent upload threads for multiple files. Defaults to 1.
             force_upload: Whether to upload files even if they're already present in
-                                 Google Photos (based on hash). Defaults to False.
+                                Google Photos (based on hash). Defaults to False.
             delete_from_host: Whether to delete the file from the host after successful upload.
-                                     Defaults to False.
+                                    Defaults to False.
 
         Returns:
             dict[str, str]: A dictionary mapping absolute file paths to their Google Photos media keys.
