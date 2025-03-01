@@ -2,7 +2,7 @@ import time
 from typing import Optional, Literal, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import signal
-
+from contextlib import nullcontext
 import os
 import mimetypes
 from pathlib import Path
@@ -86,14 +86,13 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, progress: Progress, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: Optional[bytes | str] = None) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: Optional[bytes | str] = None) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
         Args:
             file_path: Path to the file to upload, can be string or Path object.
             progress: Rich Progress object for tracking upload progress.
-            show_progress: Whether to display upload progress in the console.
             force_upload: Whether to upload the file even if it's already present in Google Photos (based on hash).
             use_quota: Uploaded files will count against your Google Photos storage quota.
             saver: Upload files in storage saver quality.
@@ -112,18 +111,18 @@ class Client:
         file_path = Path(file_path)
         file_size = file_path.stat().st_size
 
-        file_progress_id = progress.add_task(description="placeholder", visible=False)
+        file_progress_id = progress.add_task(description="")
         try:
-            hash_hand = HashHandler(sha1_hash=sha1_hash, file_path=file_path, progress=progress, file_progress_id=file_progress_id, show_progress=show_progress)
+            hash_hand = HashHandler(sha1_hash=sha1_hash, file_path=file_path, progress=progress, file_progress_id=file_progress_id)
 
             if not force_upload:
-                progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}", visible=show_progress)
+                progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}")
                 if remote_media_key := api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=self.bearer_token, timeout=self.timeout):
                     return {file_path.absolute().as_posix(): remote_media_key}
 
             upload_token = api_methods.get_upload_token(hash_hand.hash_b64, file_size, auth_token=self.bearer_token, timeout=self.timeout)
             progress.reset(task_id=file_progress_id)
-            progress.update(task_id=file_progress_id, description=f"Uploading: {file_path.name}", visible=show_progress)
+            progress.update(task_id=file_progress_id, description=f"Uploading: {file_path.name}")
             with progress.open(file_path, "rb", task_id=file_progress_id) as file:
                 upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=self.bearer_token, timeout=self.timeout)
             progress.update(task_id=file_progress_id, description=f"Finalizing Upload: {file_path.name}")
@@ -357,13 +356,14 @@ class Client:
             TextColumn("{task.description}"),
         )
 
-        with Live(file_progress):
+        live_context = (show_progress and Live(file_progress)) or nullcontext()
+
+        with live_context:
             try:
                 return self._upload_file(
                     file_path=file_path,
                     progress=file_progress,
                     sha1_hash=sha1_hash,
-                    show_progress=show_progress,
                     force_upload=force_upload,
                     use_quota=use_quota,
                     saver=saver,
@@ -411,10 +411,13 @@ class Client:
             file_progress,
             overall_progress,
         )
+
+        live_context = (show_progress and Live(progress_group)) or nullcontext()
+
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(paths), visible=show_progress)
-        with Live(progress_group, refresh_per_second=20):
+        with live_context:
             with ThreadPoolExecutor(max_workers=threads) as executor:
-                futures = {executor.submit(self._upload_file, file, progress=file_progress, show_progress=show_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): file for file in paths}
+                futures = {executor.submit(self._upload_file, file, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): file for file in paths}
                 for future in as_completed(futures):
                     file = futures[future]
                     try:
@@ -460,6 +463,7 @@ class Client:
         Args:
             media_keys: Media keys of the media items to be added to album.
             album_name: Album name.
+            show_progress : Whether to display upload progress in the console.
 
         Returns:
             list[str]: A list of album media keys for all created albums.
@@ -483,9 +487,11 @@ class Client:
             MofNCompleteColumn(),
             TimeElapsedColumn(),
         )
-        task = progress.add_task(f"[bold yellow]Adding items to album[/bold yellow] [cyan]{album_name}[/cyan]:", total=len(media_keys), visible=show_progress)
+        task = progress.add_task(f"[bold yellow]Adding items to album[/bold yellow] [cyan]{album_name}[/cyan]:", total=len(media_keys))
 
-        with Live(progress):
+        live_context = (show_progress and Live(progress)) or nullcontext()
+
+        with live_context:
             for i in range(0, len(media_keys), album_limit):
                 album_batch = media_keys[i : i + album_limit]
                 # Add a suffix if media_keys will not fit into a single album

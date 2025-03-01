@@ -15,7 +15,6 @@ class HashHandler:
         file_path: Optional[Path] = None,
         progress: Optional[Progress] = None,
         file_progress_id: Optional[TaskID] = None,
-        show_progress: Optional[bool] = False,
     ) -> None:
         """
         Initialize the HashHandler with either a SHA1 hash or a file path.
@@ -36,7 +35,6 @@ class HashHandler:
             raise ValueError("`sha1_hash` or `file_path` must be provided")
         self.progress = progress
         self.file_progress_id = file_progress_id
-        self.show_progress = show_progress
         self.hash_bytes: bytes = b""
         self.hash_b64: str = ""
         self._process_args(sha1_hash, file_path)
@@ -59,10 +57,10 @@ class HashHandler:
             case str(sha1_hash):
                 self.hash_bytes, self.hash_b64 = self._process_string_hash(sha1_hash)
             case _:
-                self.hash_bytes = self._calculate_sha1_hash(file_path, self.progress, self.file_progress_id, self.show_progress)
+                self.hash_bytes = self._calculate_sha1_hash(file_path, self.progress, self.file_progress_id)
                 self.hash_b64 = base64.b64encode(self.hash_bytes).decode("utf-8")
 
-    def _calculate_sha1_hash(self, file_path: Path, progress: Optional[Progress] = None, file_progress_id: Optional[TaskID] = None, show_progress: Optional[bool] = False) -> bytes:
+    def _calculate_sha1_hash(self, file_path: Path, progress: Optional[Progress] = None, file_progress_id: Optional[TaskID] = None) -> bytes:
         """
         Calculate the SHA1 hash of a file in chunks, with optional progress tracking.
 
@@ -76,7 +74,7 @@ class HashHandler:
             bytes: The calculated SHA1 hash as a byte array.
         """
         if progress and file_progress_id:
-            progress.update(task_id=file_progress_id, description=f"Calculating Hash: {file_path.name}", visible=show_progress)
+            progress.update(task_id=file_progress_id, description=f"Calculating Hash: {file_path.name}")
 
         hash_sha1 = hashlib.sha1()
 
