@@ -1,4 +1,4 @@
-from typing import Optional, Any, IO, Generator, Literal, Sequence
+from typing import Any, IO, Generator, Literal, Sequence
 import time
 from urllib.parse import parse_qs
 from pathlib import Path
@@ -104,7 +104,7 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
     return response.headers["X-GUploader-UploadID"]
 
 
-def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> Optional[str]:
+def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> str | None:
     """
     Check library for existing files with the hash.
 
@@ -194,7 +194,7 @@ def finalize_upload(
     quality: Literal["original", "saver"] = "original",
     make: str = "Google",
     model: str = "Pixel XL",
-    upload_timestamp: Optional[int] = None,
+    upload_timestamp: int | None = None,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     """

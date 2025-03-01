@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Literal, Sequence
+from typing import Literal, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import signal
 from contextlib import nullcontext
@@ -34,7 +34,7 @@ DEFAULT_TIMEOUT = api_methods.DEFAULT_TIMEOUT
 class Client:
     """Reverse engineered Google Photos mobile API client."""
 
-    def __init__(self, auth_data: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
+    def __init__(self, auth_data: str | None = None, timeout: int = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
         """
         Initialize the Google Photos mobile client.
 
@@ -64,7 +64,7 @@ class Client:
             return token
         raise RuntimeError("Auth response does not contain bearer token")
 
-    def _handle_auth_data(self, auth_data: Optional[str]) -> str:
+    def _handle_auth_data(self, auth_data: str | None) -> str:
         """
         Validate and return authentication data.
 
@@ -86,7 +86,7 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: Optional[bytes | str] = None) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: bytes | str | None = None) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -196,8 +196,8 @@ class Client:
     def upload(
         self,
         target: str | Path | Sequence[str | Path],
-        sha1_hash: Optional[bytes | str] = None,
-        album_name: Optional[str] = None,
+        sha1_hash: bytes | str | None = None,
+        album_name: str | None = None,
         use_quota: bool = False,
         saver: bool = False,
         recursive: bool = False,
@@ -332,7 +332,7 @@ class Client:
 
         return media_files
 
-    def _upload_single(self, file_path: str | Path, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: Optional[bytes | str] = None) -> dict[str, str]:
+    def _upload_single(self, file_path: str | Path, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, sha1_hash: bytes | str | None = None) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
