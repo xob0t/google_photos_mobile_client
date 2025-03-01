@@ -1,13 +1,22 @@
 # google_photos_mobile_client
 
-Very basic, reverse engineered, Google Photos mobile API client.  
-Made for uploading files as Pixel XL without relying on a physical device/emulator.
+Google Photos client based on reverse engineered mobile API.
 
 ---
 
 ## CLI Demo
 
 ![cli demo](media/gpmc-demo.webp)
+
+## Features
+
+- Unlimited uploads in original quality (can be disabled).
+- Use as a CLI tool or Python library.
+- Skips files already present in your account.
+- Upload individual files or entire directories, with optional recursive scanning.
+- Album creation based on directory structure or custom album name.
+- Real-time progress tracking.
+- Configurable threads for faster uploads (default: 1).
 
 ## Installation
 
