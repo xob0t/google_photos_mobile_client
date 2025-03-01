@@ -1,6 +1,5 @@
 import binascii
 import base64
-from typing import Optional, Tuple
 from pathlib import Path
 import hashlib
 
@@ -11,22 +10,22 @@ from rich.progress import TaskID
 class HashHandler:
     def __init__(
         self,
-        sha1_hash: Optional[str | bytes] = None,
-        file_path: Optional[Path] = None,
-        progress: Optional[Progress] = None,
-        file_progress_id: Optional[TaskID] = None,
+        sha1_hash: str | bytes | None = None,
+        file_path: Path | None = None,
+        progress: Progress | None = None,
+        file_progress_id: TaskID | None = None,
     ) -> None:
         """
         Initialize the HashHandler with either a SHA1 hash or a file path.
 
         Args:
-            sha1_hash (Optional[Union[str, bytes]]): The SHA1 hash as a string or bytes.
+            sha1_hash: The SHA1 hash as a string or bytes.
                 If None, file_path must be provided.
-            file_path (Optional[Path]): The path to the file from which to calculate the SHA1 hash.
+            file_path: The path to the file from which to calculate the SHA1 hash.
                 If None, sha1_hash must be provided.
-            progress (Optional[Progress]): An optional Progress instance for tracking hash calculation.
-            file_progress_id (Optional[TaskID]): An optional TaskID for progress tracking.
-            show_progress (Optional[bool]): Whether to show progress during hash calculation.
+            progress: An optional Progress instance for tracking hash calculation.
+            file_progress_id: An optional TaskID for progress tracking.
+            show_progress: Whether to show progress during hash calculation.
 
         Raises:
             ValueError: If both sha1_hash and file_path are None.
@@ -39,13 +38,13 @@ class HashHandler:
         self.hash_b64: str = ""
         self._process_args(sha1_hash, file_path)
 
-    def _process_args(self, sha1_hash: Optional[str | bytes] = None, file_path: Optional[Path] = None) -> None:
+    def _process_args(self, sha1_hash: str | bytes | None = None, file_path: Path | None = None) -> None:
         """
         Process the input SHA1 hash in various formats or calculate it from a file.
 
         Args:
-            sha1_hash (Optional[Union[str, bytes]]): Input SHA1 hash in string or bytes format.
-            file_path (Optional[Path]): The file path if the SHA1 hash is not provided.
+            sha1_hash: Input SHA1 hash in string or bytes format.
+            file_path: The file path if the SHA1 hash is not provided.
 
         Raises:
             ValueError: If the hash format is invalid.
@@ -60,15 +59,15 @@ class HashHandler:
                 self.hash_bytes = self._calculate_sha1_hash(file_path, self.progress, self.file_progress_id)
                 self.hash_b64 = base64.b64encode(self.hash_bytes).decode("utf-8")
 
-    def _calculate_sha1_hash(self, file_path: Path, progress: Optional[Progress] = None, file_progress_id: Optional[TaskID] = None) -> bytes:
+    def _calculate_sha1_hash(self, file_path: Path, progress: Progress | None = None, file_progress_id: TaskID | None = None) -> bytes:
         """
         Calculate the SHA1 hash of a file in chunks, with optional progress tracking.
 
         Args:
-            file_path (Path): The path to the file to be hashed.
-            progress (Optional[Progress]): An optional Progress instance for tracking hash calculation.
-            file_progress_id (Optional[TaskID]): An optional TaskID for progress tracking.
-            show_progress (Optional[bool]): Whether to show progress during hash calculation.
+            file_path: The path to the file to be hashed.
+            progress: An optional Progress instance for tracking hash calculation.
+            file_progress_id: An optional TaskID for progress tracking.
+            show_progress: Whether to show progress during hash calculation.
 
         Returns:
             bytes: The calculated SHA1 hash as a byte array.
@@ -89,15 +88,15 @@ class HashHandler:
 
         return hash_sha1.digest()
 
-    def _process_string_hash(self, sha1_hash: str) -> Tuple[bytes, str]:
+    def _process_string_hash(self, sha1_hash: str) -> tuple[bytes, str]:
         """
         Process a string representation of a SHA1 hash.
 
         Args:
-            sha1_hash (str): The SHA1 hash as a hexadecimal string or base64 encoded string.
+            sha1_hash: The SHA1 hash as a hexadecimal string or base64 encoded string.
 
         Returns:
-            Tuple[bytes, str]: A tuple containing the SHA1 hash in bytes and base64 encoded string format.
+            tuple[bytes, str]: A tuple containing the SHA1 hash in bytes and base64 encoded string format.
 
         Raises:
             ValueError: If the SHA1 hash format is invalid.
@@ -120,7 +119,7 @@ class HashHandler:
         Check if the given string is a valid hexadecimal representation of a SHA-1 hash.
 
         Args:
-            string (str): The string to check.
+            string: The string to check.
 
         Returns:
             bool: True if the string is a valid hexadecimal SHA-1 hash, False otherwise.
