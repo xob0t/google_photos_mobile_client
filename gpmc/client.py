@@ -23,7 +23,7 @@ from rich.progress import (
 
 from . import api_methods
 from . import utils
-from .hash_handler import HashHandler
+from .hash_handler import calculate_sha1_hash, convert_sha1_hash
 
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -113,14 +113,17 @@ class Client:
 
         file_progress_id = progress.add_task(description="")
         try:
-            hash_hand = HashHandler(sha1_hash=sha1_hash, file_path=file_path, progress=progress, file_progress_id=file_progress_id)
+            if sha1_hash is not None:
+                hash_bytes, hash_b64 = convert_sha1_hash(sha1_hash)
+            else:
+                hash_bytes, hash_b64 = calculate_sha1_hash(file_path, progress, file_progress_id)
 
             if not force_upload:
                 progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}")
-                if remote_media_key := api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=self.bearer_token, timeout=self.timeout):
+                if remote_media_key := api_methods.find_remote_media_by_hash(hash_bytes, auth_token=self.bearer_token, timeout=self.timeout):
                     return {file_path.absolute().as_posix(): remote_media_key}
 
-            upload_token = api_methods.get_upload_token(hash_hand.hash_b64, file_size, auth_token=self.bearer_token, timeout=self.timeout)
+            upload_token = api_methods.get_upload_token(hash_b64, file_size, auth_token=self.bearer_token, timeout=self.timeout)
             progress.reset(task_id=file_progress_id)
             progress.update(task_id=file_progress_id, description=f"Uploading: {file_path.name}")
             with progress.open(file_path, "rb", task_id=file_progress_id) as file:
@@ -137,7 +140,7 @@ class Client:
             media_key = api_methods.finalize_upload(
                 upload_response_decoded=upload_response,
                 file_name=file_path.name,
-                sha1_hash=hash_hand.hash_bytes,
+                sha1_hash=hash_bytes,
                 auth_token=self.bearer_token,
                 upload_timestamp=last_modified_timestamp,
                 timeout=self.timeout,
@@ -159,8 +162,9 @@ class Client:
         Returns:
             str | None: The Google Photos media key if the hash is found, otherwise None.
         """
-        hash_hand = HashHandler(sha1_hash=sha1_hash)
-        return api_methods.find_remote_media_by_hash(hash_hand.hash_bytes, auth_token=self.bearer_token, timeout=self.timeout)
+
+        hash_bytes, _ = convert_sha1_hash(sha1_hash)
+        return api_methods.find_remote_media_by_hash(hash_bytes, auth_token=self.bearer_token, timeout=self.timeout)
 
     def _handle_album_creation(self, results: dict[str, str], album_name: str, show_progress: bool) -> None:
         """
@@ -450,7 +454,7 @@ class Client:
         if isinstance(sha1_hashes, str | bytes):
             sha1_hashes = [sha1_hashes]
 
-        hashes_b64 = [HashHandler(sha1_hash=hash).hash_b64 for hash in sha1_hashes]
+        hashes_b64 = [convert_sha1_hash(hash)[1] for hash in sha1_hashes]
         dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
         response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=self.bearer_token)
         return response

@@ -1,127 +1,75 @@
-import binascii
 import base64
 from pathlib import Path
 import hashlib
 
-from rich.progress import Progress
-from rich.progress import TaskID
+from rich.progress import Progress, TaskID
 
 
-class HashHandler:
-    def __init__(
-        self,
-        sha1_hash: str | bytes | None = None,
-        file_path: Path | None = None,
-        progress: Progress | None = None,
-        file_progress_id: TaskID | None = None,
-    ) -> None:
-        """
-        Initialize the HashHandler with either a SHA1 hash or a file path.
+def calculate_sha1_hash(file_path: Path, progress: Progress, file_progress_id: TaskID) -> tuple[bytes, str]:
+    """
+    Calculate the SHA1 hash of a file in chunks, with progress tracking.
 
-        Args:
-            sha1_hash: The SHA1 hash as a string or bytes.
-                If None, file_path must be provided.
-            file_path: The path to the file from which to calculate the SHA1 hash.
-                If None, sha1_hash must be provided.
-            progress: An optional Progress instance for tracking hash calculation.
-            file_progress_id: An optional TaskID for progress tracking.
-            show_progress: Whether to show progress during hash calculation.
+    Args:
+        file_path: The path to the file to be hashed.
+        progress: A Progress instance for tracking hash calculation.
+        file_progress_id: A TaskID for progress tracking.
 
-        Raises:
-            ValueError: If both sha1_hash and file_path are None.
-        """
-        if not sha1_hash and not file_path:
-            raise ValueError("`sha1_hash` or `file_path` must be provided")
-        self.progress = progress
-        self.file_progress_id = file_progress_id
-        self.hash_bytes: bytes = b""
-        self.hash_b64: str = ""
-        self._process_args(sha1_hash, file_path)
+    Returns:
+        tuple[bytes, str]: A tuple containing the SHA1 hash in bytes and base64 encoded string format.
+    """
+    progress.update(task_id=file_progress_id, description=f"Calculating Hash: {file_path.name}")
 
-    def _process_args(self, sha1_hash: str | bytes | None = None, file_path: Path | None = None) -> None:
-        """
-        Process the input SHA1 hash in various formats or calculate it from a file.
+    hash_sha1 = hashlib.sha1()
 
-        Args:
-            sha1_hash: Input SHA1 hash in string or bytes format.
-            file_path: The file path if the SHA1 hash is not provided.
+    with progress.open(file_path, "rb", task_id=file_progress_id) as file:
+        for chunk in iter(lambda: file.read(4096), b""):
+            hash_sha1.update(chunk)
 
-        Raises:
-            ValueError: If the hash format is invalid.
-        """
-        match sha1_hash:
-            case bytes(sha1_hash):
-                self.hash_bytes = sha1_hash
-                self.hash_b64 = base64.b64encode(sha1_hash).decode("utf-8")
-            case str(sha1_hash):
-                self.hash_bytes, self.hash_b64 = self._process_string_hash(sha1_hash)
-            case _:
-                self.hash_bytes = self._calculate_sha1_hash(file_path, self.progress, self.file_progress_id)
-                self.hash_b64 = base64.b64encode(self.hash_bytes).decode("utf-8")
+    hash_bytes = hash_sha1.digest()
+    hash_b64 = base64.b64encode(hash_bytes).decode("utf-8")
 
-    def _calculate_sha1_hash(self, file_path: Path, progress: Progress | None = None, file_progress_id: TaskID | None = None) -> bytes:
-        """
-        Calculate the SHA1 hash of a file in chunks, with optional progress tracking.
+    return hash_bytes, hash_b64
 
-        Args:
-            file_path: The path to the file to be hashed.
-            progress: An optional Progress instance for tracking hash calculation.
-            file_progress_id: An optional TaskID for progress tracking.
-            show_progress: Whether to show progress during hash calculation.
 
-        Returns:
-            bytes: The calculated SHA1 hash as a byte array.
-        """
-        if progress and file_progress_id:
-            progress.update(task_id=file_progress_id, description=f"Calculating Hash: {file_path.name}")
+def convert_sha1_hash(sha1_hash: str | bytes) -> tuple[bytes, str]:
+    """
+    Convert a SHA1 hash from string or bytes format to bytes and base64 encoded string.
 
-        hash_sha1 = hashlib.sha1()
+    Args:
+        sha1_hash: The SHA1 hash as a string or bytes.
 
-        if progress:
-            file_obj = progress.open(file_path, "rb", task_id=file_progress_id)
+    Returns:
+        tuple[bytes, str]: A tuple containing the SHA1 hash in bytes and base64 encoded string format.
+
+    Raises:
+        ValueError: If the hash format is invalid.
+    """
+    if isinstance(sha1_hash, bytes):
+        hash_bytes = sha1_hash
+        hash_b64 = base64.b64encode(sha1_hash).decode("utf-8")
+    elif isinstance(sha1_hash, str):
+        if _is_hash_hexadecimal(sha1_hash):
+            # Convert hex string to bytes
+            hash_bytes = bytes.fromhex(sha1_hash)
+            hash_b64 = base64.b64encode(hash_bytes).decode("utf-8")
         else:
-            file_obj = open(file_path, "rb")
+            # Assume base64 encoded
+            hash_bytes = base64.b64decode(sha1_hash)
+            hash_b64 = sha1_hash
+    else:
+        raise ValueError("Invalid hash format. Expected str or bytes.")
 
-        with file_obj as file:
-            for chunk in iter(lambda: file.read(4096), b""):
-                hash_sha1.update(chunk)
+    return hash_bytes, hash_b64
 
-        return hash_sha1.digest()
 
-    def _process_string_hash(self, sha1_hash: str) -> tuple[bytes, str]:
-        """
-        Process a string representation of a SHA1 hash.
+def _is_hash_hexadecimal(string: str) -> bool:
+    """
+    Check if the given string is a valid hexadecimal representation of a SHA-1 hash.
 
-        Args:
-            sha1_hash: The SHA1 hash as a hexadecimal string or base64 encoded string.
+    Args:
+        string: The string to check.
 
-        Returns:
-            tuple[bytes, str]: A tuple containing the SHA1 hash in bytes and base64 encoded string format.
-
-        Raises:
-            ValueError: If the SHA1 hash format is invalid.
-        """
-        try:
-            if self._is_hash_hexadec(sha1_hash):
-                # Convert hex string to bytes
-                sha1_hash_bytes = bytes.fromhex(sha1_hash)
-                sha1_hash_b64 = base64.b64encode(sha1_hash_bytes).decode("utf-8")
-            else:
-                # Assume base64 encoded
-                sha1_hash_bytes = base64.b64decode(sha1_hash)
-                sha1_hash_b64 = sha1_hash
-            return sha1_hash_bytes, sha1_hash_b64
-        except (ValueError, binascii.Error) as e:
-            raise ValueError(f"Invalid SHA1 hash format: {e}") from e
-
-    def _is_hash_hexadec(self, string: str) -> bool:
-        """
-        Check if the given string is a valid hexadecimal representation of a SHA-1 hash.
-
-        Args:
-            string: The string to check.
-
-        Returns:
-            bool: True if the string is a valid hexadecimal SHA-1 hash, False otherwise.
-        """
-        return len(string) == 40 and all(c in "0123456789abcdefABCDEF" for c in string)
+    Returns:
+        bool: True if the string is a valid hexadecimal SHA-1 hash, False otherwise.
+    """
+    return len(string) == 40 and all(c in "0123456789abcdefABCDEF" for c in string)
