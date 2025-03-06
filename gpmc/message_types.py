@@ -1,6 +1,6 @@
 """Protobuf message types"""
 
-FINALIZE_MESSAGE_TYPE = {
+COMMIT_UPLOAD = {
     "1": {
         "type": "message",
         "message_typedef": {
@@ -142,4 +142,90 @@ FINALIZE_MESSAGE_TYPE = {
     },
     "2": {"type": "message", "message_typedef": {"3": {"type": "string"}, "4": {"type": "string"}, "5": {"type": "int"}}},
     "3": {"type": "bytes"},
+}
+
+CREATE_ALBUM = {
+    "1": {"type": "string"},
+    "2": {"type": "int"},
+    "3": {"type": "int"},
+    "4": {"seen_repeated": True, "field_order": ["1"], "message_typedef": {"1": {"field_order": ["1"], "message_typedef": {"1": {"type": "string"}}, "type": "message"}}, "type": "message"},
+    "6": {"message_typedef": {}, "type": "message"},
+    "7": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
+    "8": {"field_order": ["3", "4", "5"], "message_typedef": {"3": {"type": "string"}, "4": {"type": "string"}, "5": {"type": "int"}}, "type": "message"},
+}
+
+MOVE_TO_TRASH = {
+    "2": {"type": "int"},
+    "3": {"type": "string"},
+    "4": {"type": "int"},
+    "8": {
+        "field_order": ["4"],
+        "message_typedef": {
+            "4": {
+                "field_order": ["2", "3", "4", "5"],
+                "message_typedef": {
+                    "2": {"message_typedef": {}, "type": "message"},
+                    "3": {
+                        "field_order": ["1"],
+                        "message_typedef": {
+                            "1": {"message_typedef": {}, "type": "message"},
+                        },
+                        "type": "message",
+                    },
+                    "4": {"message_typedef": {}, "type": "message"},
+                    "5": {
+                        "field_order": ["1"],
+                        "message_typedef": {
+                            "1": {"message_typedef": {}, "type": "message"},
+                        },
+                        "type": "message",
+                    },
+                },
+                "type": "message",
+            }
+        },
+        "type": "message",
+    },
+    "9": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"type": "string"}}, "type": "message"}}, "type": "message"},
+}
+
+FIND_REMOTE_MEDIA_BY_HASH = {
+    "1": {
+        "field_order": ["1", "2"],
+        "message_typedef": {
+            "1": {
+                "field_order": ["1"],
+                "message_typedef": {
+                    "1": {"type": "bytes"},
+                },
+                "type": "message",
+            },
+            "2": {"message_typedef": {}, "type": "message"},
+        },
+        "type": "message",
+    },
+}
+
+GET_UPLOAD_TOKEN = {
+    "1": {"type": "int"},
+    "2": {"type": "int"},
+    "3": {"type": "int"},
+    "4": {"type": "int"},
+    "7": {"type": "int"},
+}
+
+ADD_MEDIA_TO_ALBUM = {
+    "1": {"type": "string"},
+    "2": {"type": "string"},
+    "5": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
+    "6": {
+        "field_order": ["3", "4", "5"],
+        "message_typedef": {
+            "3": {"type": "string"},
+            "4": {"type": "string"},
+            "5": {"type": "int"},
+        },
+        "type": "message",
+    },
+    "7": {"type": "int"},
 }

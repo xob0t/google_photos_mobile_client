@@ -30,11 +30,13 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 DEFAULT_TIMEOUT = api_methods.DEFAULT_TIMEOUT
 
+LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
+
 
 class Client:
     """Reverse engineered Google Photos mobile API client."""
 
-    def __init__(self, auth_data: str | None = None, timeout: int = DEFAULT_TIMEOUT, log_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
+    def __init__(self, auth_data: str | None = None, timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
         """
         Initialize the Google Photos mobile client.
 
@@ -137,7 +139,7 @@ class Client:
                 model = "Pixel 2"
             if use_quota:
                 model = "Pixel 8"
-            media_key = api_methods.finalize_upload(
+            media_key = api_methods.commit_upload(
                 upload_response_decoded=upload_response,
                 file_name=file_path.name,
                 sha1_hash=hash_bytes,
@@ -454,7 +456,7 @@ class Client:
         if isinstance(sha1_hashes, str | bytes):
             sha1_hashes = [sha1_hashes]
 
-        hashes_b64 = [convert_sha1_hash(hash)[1] for hash in sha1_hashes]
+        hashes_b64 = [convert_sha1_hash(hash)[1] for hash in sha1_hashes]  # type: ignore
         dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
         response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=self.bearer_token)
         return response
@@ -505,7 +507,7 @@ class Client:
                     batch = album_batch[j : j + batch_size]
                     if current_album_key is None:
                         # Create the album with the first batch
-                        current_album_key = api_methods.create_new_album(album_name=current_album_name, media_keys=batch, auth_token=self.bearer_token)
+                        current_album_key = api_methods.create_album(album_name=current_album_name, media_keys=batch, auth_token=self.bearer_token)
                         album_keys.append(current_album_key)
                     else:
                         # Add to the existing album

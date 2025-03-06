@@ -4,7 +4,7 @@ from urllib.parse import parse_qs
 from pathlib import Path
 import blackboxprotobuf
 
-from .message_types import FINALIZE_MESSAGE_TYPE  # Too long, stored separately
+from . import message_types
 from .utils import new_session_with_retries
 from .exceptions import UploadRejected
 
@@ -84,10 +84,10 @@ def get_upload_token(sha_hash_b64: str, file_size: int, auth_token: str, timeout
     Raises:
         requests.HTTPError: If the api request fails.
     """
-    message_type = {"1": {"type": "int"}, "2": {"type": "int"}, "3": {"type": "int"}, "4": {"type": "int"}, "7": {"type": "int"}}
+
     proto_body = {"1": 2, "2": 2, "3": 1, "4": 3, "7": file_size}
 
-    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.GET_UPLOAD_TOKEN)  # type: ignore
 
     headers = {
         "Accept-Encoding": "gzip",
@@ -119,9 +119,9 @@ def find_remote_media_by_hash(sha1_hash: bytes, auth_token: str, timeout: int = 
     Raises:
         requests.HTTPError: If the api request fails.
     """
-    message_type = {"1": {"field_order": ["1", "2"], "message_typedef": {"1": {"field_order": ["1"], "message_typedef": {"1": {"type": "bytes"}}, "type": "message"}, "2": {"message_typedef": {}, "type": "message"}}, "type": "message"}}
+
     proto_body = {"1": {"1": {"1": sha1_hash}, "2": {}}}
-    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.FIND_REMOTE_MEDIA_BY_HASH)  # type: ignore
     headers = {
         "Accept-Encoding": "gzip",
         "Accept-Language": "en_US",
@@ -169,15 +169,15 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
                 response = session.put(
                     f"https://photos.googleapis.com/data/upload/uploadmedia/interactive?upload_id={upload_token}",
                     headers=headers,
-                    data=f,
                     timeout=timeout,
+                    data=f,
                 )
         else:
             response = session.put(
                 f"https://photos.googleapis.com/data/upload/uploadmedia/interactive?upload_id={upload_token}",
                 headers=headers,
-                data=file,
                 timeout=timeout,
+                data=file,
             )
 
     response.raise_for_status()
@@ -186,7 +186,7 @@ def upload_file(file: str | Path | bytes | IO[bytes] | Generator[bytes, None, No
     return upload_response_decoded
 
 
-def finalize_upload(
+def commit_upload(
     upload_response_decoded: dict[str, Any],
     file_name: str,
     sha1_hash: bytes,
@@ -198,7 +198,7 @@ def finalize_upload(
     timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     """
-    Finalize the upload by sending the complete message to the API.
+    COMMIT the upload by sending the complete message to the API.
 
     Args:
         upload_response_decoded: Decoded upload response.
@@ -222,7 +222,6 @@ def finalize_upload(
     upload_timestamp = upload_timestamp or int(time.time())
     unknown_int = 46000000
 
-    message_type = FINALIZE_MESSAGE_TYPE
     proto_body = {
         "1": {
             "1": upload_response_decoded,
@@ -281,7 +280,7 @@ def finalize_upload(
         "3": bytes([1, 3]),
     }
 
-    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.COMMIT_UPLOAD)  # type: ignore
 
     headers = {
         "Accept-Encoding": "gzip",
@@ -319,29 +318,6 @@ def move_remote_media_to_trash(dedup_keys: Sequence[str], auth_token: str, timeo
         requests.HTTPError: If the api request fails.
     """
 
-    message_type = {
-        "2": {"type": "int"},
-        "3": {"type": "string"},
-        "4": {"type": "int"},
-        "8": {
-            "field_order": ["4"],
-            "message_typedef": {
-                "4": {
-                    "field_order": ["2", "3", "4", "5"],
-                    "message_typedef": {
-                        "2": {"message_typedef": {}, "type": "message"},
-                        "3": {"field_order": ["1"], "message_typedef": {"1": {"message_typedef": {}, "type": "message"}}, "type": "message"},
-                        "4": {"message_typedef": {}, "type": "message"},
-                        "5": {"field_order": ["1"], "message_typedef": {"1": {"message_typedef": {}, "type": "message"}}, "type": "message"},
-                    },
-                    "type": "message",
-                }
-            },
-            "type": "message",
-        },
-        "9": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"type": "string"}}, "type": "message"}}, "type": "message"},
-    }
-
     proto_body = {
         "2": 1,
         "3": dedup_keys,
@@ -349,7 +325,7 @@ def move_remote_media_to_trash(dedup_keys: Sequence[str], auth_token: str, timeo
         "8": {"4": {"2": {}, "3": {"1": {}}, "4": {}, "5": {"1": {}}}},
         "9": {"1": 5, "2": {"1": 49029607, "2": "28"}},
     }
-    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.MOVE_TO_TRASH)  # type: ignore
     headers = {
         "Accept-Encoding": "gzip",
         "Accept-Language": "en_US",
@@ -365,7 +341,7 @@ def move_remote_media_to_trash(dedup_keys: Sequence[str], auth_token: str, timeo
     return decoded_message
 
 
-def create_new_album(album_name: str, media_keys: Sequence[str], auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+def create_album(album_name: str, media_keys: Sequence[str], auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> str:
     """Create new album with media.
 
     Args:
@@ -381,16 +357,6 @@ def create_new_album(album_name: str, media_keys: Sequence[str], auth_token: str
         requests.HTTPError: If the api request fails.
     """
 
-    message_type = {
-        "1": {"type": "string"},
-        "2": {"type": "int"},
-        "3": {"type": "int"},
-        "4": {"seen_repeated": True, "field_order": ["1"], "message_typedef": {"1": {"field_order": ["1"], "message_typedef": {"1": {"type": "string"}}, "type": "message"}}, "type": "message"},
-        "6": {"message_typedef": {}, "type": "message"},
-        "7": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
-        "8": {"field_order": ["3", "4", "5"], "message_typedef": {"3": {"type": "string"}, "4": {"type": "string"}, "5": {"type": "int"}}, "type": "message"},
-    }
-
     proto_body = {
         "1": album_name,
         "2": int(time.time()),
@@ -401,7 +367,7 @@ def create_new_album(album_name: str, media_keys: Sequence[str], auth_token: str
         "8": {"3": "Pixel XL", "4": "Google", "5": 28},
     }
 
-    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.CREATE_ALBUM)  # type: ignore
 
     headers = {
         "Accept-Encoding": "gzip",
@@ -436,14 +402,6 @@ def add_media_to_album(album_media_key: str, media_keys: Sequence[str], auth_tok
         requests.HTTPError: If the api request fails.
     """
 
-    message_type = {
-        "1": {"type": "string"},
-        "2": {"type": "string"},
-        "5": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
-        "6": {"field_order": ["3", "4", "5"], "message_typedef": {"3": {"type": "string"}, "4": {"type": "string"}, "5": {"type": "int"}}, "type": "message"},
-        "7": {"type": "int"},
-    }
-
     proto_body = {
         "1": list(media_keys),
         "2": album_media_key,
@@ -451,7 +409,7 @@ def add_media_to_album(album_media_key: str, media_keys: Sequence[str], auth_tok
         "6": {"3": "Pixel XL", "4": "Google", "5": 28},
         "7": int(time.time()),
     }
-    serialized_data = blackboxprotobuf.encode_message(proto_body, message_type)
+    serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.ADD_MEDIA_TO_ALBUM)  # type: ignore
 
     headers = {
         "Accept-Encoding": "gzip",
