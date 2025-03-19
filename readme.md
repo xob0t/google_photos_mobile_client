@@ -120,3 +120,7 @@ You only need to do it once.
 
 - Disguse any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
 - Manage library with bulk operations: [https://github.com/xob0t/Google-Photos-Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
+
+## Utilization Examples
+
+- [Seafile Setup](seafile.md)
