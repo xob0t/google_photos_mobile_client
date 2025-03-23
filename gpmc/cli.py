@@ -40,7 +40,7 @@ def main():
 
     args = parser.parse_args()
 
-    if (args.exclude or args.regex or args.ignore_case or args.path) and not args.filter:
+    if (args.exclude or args.regex or args.ignore_case or args.match_path) and not args.filter:
         parser.error("--filter is required when using any of --exclude, --regex, --ignore-case, or --match-path")
 
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
