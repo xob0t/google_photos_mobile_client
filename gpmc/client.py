@@ -362,9 +362,9 @@ class Client:
             TextColumn("{task.description}"),
         )
 
-        live_context = (show_progress and Live(file_progress)) or nullcontext()
+        context = (show_progress and Live(file_progress)) or nullcontext()
 
-        with live_context:
+        with context:
             try:
                 return self._upload_file(
                     file_path=file_path,
@@ -418,10 +418,10 @@ class Client:
             overall_progress,
         )
 
-        live_context = (show_progress and Live(progress_group)) or nullcontext()
+        context = (show_progress and Live(progress_group)) or nullcontext()
 
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(paths), visible=show_progress)
-        with live_context:
+        with context:
             with ThreadPoolExecutor(max_workers=threads) as executor:
                 futures = {executor.submit(self._upload_file, file, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): file for file in paths}
                 for future in as_completed(futures):
@@ -495,9 +495,9 @@ class Client:
         )
         task = progress.add_task(f"[bold yellow]Adding items to album[/bold yellow] [cyan]{album_name}[/cyan]:", total=len(media_keys))
 
-        live_context = (show_progress and Live(progress)) or nullcontext()
+        context = (show_progress and Live(progress)) or nullcontext()
 
-        with live_context:
+        with context:
             for i in range(0, len(media_keys), album_limit):
                 album_batch = media_keys[i : i + album_limit]
                 # Add a suffix if media_keys will not fit into a single album
