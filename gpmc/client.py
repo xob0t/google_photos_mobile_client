@@ -366,7 +366,7 @@ class Client:
         if path.is_file():
             if any(mimetype_guess is not None and mimetype_guess.startswith(mimetype) for mimetype in self.valid_mimetypes if (mimetype_guess := mimetypes.guess_type(path)[0])):
                 return [path]
-            raise ValueError("File's mime type does not matches image or video mime type.")
+            raise ValueError("File's mime type does not match image or video mime type.")
 
         if not path.is_dir():
             raise ValueError("Invalid path. Please provide a file or directory path.")
