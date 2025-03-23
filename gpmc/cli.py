@@ -14,7 +14,7 @@ def main():
         type=str,
         help=(
             "Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.\n"
-            "Example:\n"
+            "Example for using 'AUTO':\n"
             "When uploading '/foo':\n"
             "'/foo/image1.jpg' goes to 'foo'\n"
             "'/foo/bar/image2.jpg' goes to 'bar'\n"
