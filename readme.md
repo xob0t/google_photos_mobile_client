@@ -56,7 +56,7 @@ gpmc "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c7
 ```
 
 ```text
-usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] path
+usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path] path
 
 Google Photos mobile client.
 
@@ -68,7 +68,7 @@ options:
   --auth_data AUTH_DATA
                         Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
   --album ALBUM         Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.
-                        Example:
+                        Example for using 'AUTO':
                         When uploading '/foo':
                         '/foo/image1.jpg' goes to 'foo'
                         '/foo/bar/image2.jpg' goes to 'bar'
@@ -83,6 +83,13 @@ options:
   --timeout TIMEOUT     Requests timeout, seconds. Defaults to 30.
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the logging level (default: INFO)
+
+File Filter Options:
+  --filter FILTER       Filter expression.
+  --exclude             Exclude files matching the filter.
+  --regex               Use regex for filtering.
+  --ignore-case         Perform case-insensitive matching.
+  --match-path          Check for matches in the path, not just the filename.
 ```
 
 ## auth_data? Where Do I Get Mine?
