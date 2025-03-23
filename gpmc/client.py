@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import signal
 from contextlib import nullcontext
 import os
+import re
 import mimetypes
 from pathlib import Path
 
@@ -199,6 +200,41 @@ class Client:
             album_name_from_path = Path(parent_dir).name  # Use the directory name as the album name
             self.add_to_album(media_keys, album_name_from_path, show_progress=show_progress)
 
+    @staticmethod
+    def _filter_files(expression: str, filter_exclude: bool, filter_regex: bool, filter_ignore_case: bool, filter_path: bool, paths: list[Path]) -> list[Path]:
+        """
+        Filters a list of Path objects based on a filter expression applied to filenames or full paths.
+
+        Args:
+            expression: The filter expression to match against filenames or paths.
+            filter_exclude: If True, exclude files matching the filter.
+            filter_regex: If True, treat the expression as a regular expression.
+            filter_ignore_case: If True, perform case-insensitive matching.
+            filter_path: If True, check for matches in the full path instead of just the filename.
+            paths: The list of Path objects to filter.
+
+        Returns:
+            list[Path]: A list of Path objects that match (or exclude, if specified) the filter expression.
+        """
+        filtered_paths = []
+
+        for path in paths:
+            text_to_check = str(path) if filter_path else str(path.name)
+
+            if filter_regex:
+                flags = re.IGNORECASE if filter_ignore_case else 0
+                matches = bool(re.search(expression, text_to_check, flags))
+            else:
+                if filter_ignore_case:
+                    matches = expression.lower() in text_to_check.lower()
+                else:
+                    matches = expression in text_to_check
+
+            if (matches and not filter_exclude) or (not matches and filter_exclude):
+                filtered_paths.append(path)
+
+        return filtered_paths
+
     def upload(
         self,
         target: str | Path | Sequence[str | Path],
@@ -211,6 +247,11 @@ class Client:
         threads: int = 1,
         force_upload: bool = False,
         delete_from_host: bool = False,
+        filter_exp: str = "",
+        filter_exclude: bool = False,
+        filter_regex: bool = False,
+        filter_ignore_case: bool = False,
+        filter_path: bool = False,
     ) -> dict[str, str]:
         """
         Upload one or more files or directories to Google Photos.
@@ -241,6 +282,11 @@ class Client:
                                 Google Photos (based on hash). Defaults to False.
             delete_from_host: Whether to delete the file from the host after successful upload.
                                     Defaults to False.
+            filter_exp: The filter expression to match against filenames or paths.
+            filter_exclude: If True, exclude files matching the filter.
+            filter_regex: If True, treat the expression as a regular expression.
+            filter_ignore_case: If True, perform case-insensitive matching.
+            filter_path: If True, check for matches in the full path instead of just the filename.
 
         Returns:
             dict[str, str]: A dictionary mapping absolute file paths to their Google Photos media keys.
@@ -264,6 +310,12 @@ class Client:
 
         if not files_to_upload:
             raise ValueError("No valid media files found to upload.")
+
+        if filter_exp:
+            files_to_upload = self._filter_files(filter_exp, filter_exclude, filter_regex, filter_ignore_case, filter_path, files_to_upload)
+
+        if not files_to_upload:
+            raise ValueError("No media files left after filtering.")
 
         if len(files_to_upload) == 1:
             results = self._upload_single(

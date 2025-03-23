@@ -31,7 +31,17 @@ def main():
     parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
     parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
 
+    filter_group = parser.add_argument_group("File Filter Options")
+    filter_group.add_argument("--filter", type=str, help="Filter expression.")
+    filter_group.add_argument("--exclude", action="store_true", help="Exclude files matching the filter.")
+    filter_group.add_argument("--regex", action="store_true", help="Use regex for filtering.")
+    filter_group.add_argument("--ignore-case", action="store_true", help="Perform case-insensitive matching.")
+    filter_group.add_argument("--match-path", action="store_true", help="Check for matches in the path, not just the filename.")
+
     args = parser.parse_args()
+
+    if (args.exclude or args.regex or args.ignore_case or args.path) and not args.filter:
+        parser.error("--filter is required when using any of --exclude, --regex, --ignore-case, or --match-path")
 
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
     output = client.upload(
@@ -44,5 +54,10 @@ def main():
         threads=args.threads,
         force_upload=args.force_upload,
         delete_from_host=args.delete_from_host,
+        filter_exp=args.filter,
+        filter_exclude=args.exclude,
+        filter_regex=args.regex,
+        filter_ignore_case=args.ignore_case,
+        filter_path=args.match_path,
     )
     pp(output)

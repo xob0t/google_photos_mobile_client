@@ -12,6 +12,11 @@ class TestUpload(unittest.TestCase):
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
 
+    def test_filter(self):
+        """Test filter."""
+        response = self.client.upload(target=self.directory_path, filter_exp="copy", filter_ignore_case=True, filter_regex=True)
+        print(response)
+
     def test_add_to_album(self):
         """Test add to album."""
         response = self.client.add_to_album(
