@@ -97,7 +97,7 @@ File Filter Options:
 Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.  
 You only need to do it once.
 
-1. Get a rooted android device or an emulator. Recommended Android version >=9
+1. Get a rooted android device or an emulator. Recommended Android versions 9-13
 2. Connect the device to your PC via ADB.
 3. Install [HTTP Toolkit](https://httptoolkit.com)
 4. In HTTP Toolkit, select Intercept - `Android Device via ADB`. Filter traffic with
@@ -125,5 +125,6 @@ You only need to do it once.
 
 ## My Other Google Photos Scripts And Tools
 
-- Disguse any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
+- Web api python client: [https://github.com/xob0t/google_photos_web_client](https://github.com/xob0t/google_photos_web_client)
+- Disguise any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
 - Manage library with bulk operations: [https://github.com/xob0t/Google-Photos-Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
