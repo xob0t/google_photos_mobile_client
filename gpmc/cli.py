@@ -7,9 +7,18 @@ from .api_methods import DEFAULT_TIMEOUT
 
 def main():
     parser = argparse.ArgumentParser(description="Google Photos mobile client.", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("path", type=str, help="Path to the file or directory to upload.")
-    parser.add_argument("--auth-data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
-    parser.add_argument(
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Common arguments for all commands
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument("--auth-data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
+    common_parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
+    common_parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
+
+    # Upload command (default)
+    upload_parser = subparsers.add_parser("upload", parents=[common_parser], help="Upload files to Google Photos", add_help=False)
+    upload_parser.add_argument("path", type=str, help="Path to the file or directory to upload.")
+    upload_parser.add_argument(
         "--album",
         type=str,
         help=(
@@ -21,28 +30,36 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
-    parser.add_argument("--progress", action="store_true", help="Display upload progress.")
-    parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
-    parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
-    parser.add_argument("--force-upload", action="store_true", help="Upload files regardless of their presence in Google Photos (determined by hash).")
-    parser.add_argument("--delete-from-host", action="store_true", help="Delete uploaded files from source path.")
-    parser.add_argument("--use-quota", action="store_true", help="Uploaded files will count against your Google Photos storage quota.")
-    parser.add_argument("--saver", action="store_true", help="Upload files in storage saver quality.")
-    parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
-    parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
+    upload_parser.add_argument("--progress", action="store_true", help="Display upload progress.")
+    upload_parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
+    upload_parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
+    upload_parser.add_argument("--force-upload", action="store_true", help="Upload files regardless of their presence in Google Photos (determined by hash).")
+    upload_parser.add_argument("--delete-from-host", action="store_true", help="Delete uploaded files from source path.")
+    upload_parser.add_argument("--use-quota", action="store_true", help="Uploaded files will count against your Google Photos storage quota.")
+    upload_parser.add_argument("--saver", action="store_true", help="Upload files in storage saver quality.")
 
-    filter_group = parser.add_argument_group("File Filter Options")
+    filter_group = upload_parser.add_argument_group("File Filter Options")
     filter_group.add_argument("--filter", type=str, help="Filter expression.")
     filter_group.add_argument("--exclude", action="store_true", help="Exclude files matching the filter.")
     filter_group.add_argument("--regex", action="store_true", help="Use regex for filtering.")
     filter_group.add_argument("--ignore-case", action="store_true", help="Perform case-insensitive matching.")
     filter_group.add_argument("--match-path", action="store_true", help="Check for matches in the path, not just the filename.")
 
+    upload_parser.set_defaults(func=handle_upload)
+
+    cache_parser = subparsers.add_parser("cache", parents=[common_parser], help="Update local cache")
+    cache_parser.set_defaults(func=handle_cache)
+
     args = parser.parse_args()
 
-    if (args.exclude or args.regex or args.ignore_case or args.match_path) and not args.filter:
+    # Validate filter arguments only for upload command
+    if args.command == "upload" and (args.exclude or args.regex or args.ignore_case or args.match_path) and not args.filter:
         parser.error("--filter is required when using any of --exclude, --regex, --ignore-case, or --match-path")
 
+    args.func(args)
+
+
+def handle_upload(args):
     client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
     output = client.upload(
         target=args.path,
@@ -61,3 +78,8 @@ def main():
         filter_path=args.match_path,
     )
     pp(output)
+
+
+def handle_cache(args):
+    client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
+    client.update_cache()

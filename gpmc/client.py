@@ -22,9 +22,11 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
+from .db import Storage
 from . import api_methods
 from . import utils
 from .hash_handler import calculate_sha1_hash, convert_sha1_hash
+from .db_state_updater import parse_db_state
 
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -57,6 +59,10 @@ class Client:
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
         self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
+        self.language = utils.parse_language(self.auth_data)
+        gpmc_dir = Path.home() / ".gpmc" / utils.parse_email(self.auth_data)
+        gpmc_dir.mkdir(parents=True, exist_ok=True)
+        self.db_path = gpmc_dir / "storage.db"
 
     @property
     def bearer_token(self) -> str:
@@ -567,3 +573,61 @@ class Client:
                     progress.update(task, advance=len(batch))
                 album_counter += 1
         return album_keys
+
+    def update_cache(self, show_progress: bool = True):
+        """Update local library cache"""
+        # Initialize progress bar with updated and deleted counters
+        progress = Progress(
+            TextColumn("{task.description}"),
+            SpinnerColumn(),
+            "Updates: [green]{task.fields[updated]:>8}[/green]",
+            "Deletions: [red]{task.fields[deleted]:>8}[/red]",
+        )
+
+        task_id = progress.add_task(
+            "[bold magenta]Updating local cache[/bold magenta]:",
+            updated=0,
+            deleted=0,
+        )
+
+        context = (show_progress and Live(progress)) or nullcontext()
+        with context:
+            with Storage(self.db_path) as storage:
+                state_token, next_page_token = storage.get_state_tokens()
+
+            # First batch
+            response = api_methods.get_library_state(self.bearer_token, state_token)
+            state_token, next_page_token, remote_media, media_keys_to_delete = parse_db_state(response)
+
+            with Storage(self.db_path) as storage:
+                storage.update_state_tokens(state_token, next_page_token)
+                storage.update(remote_media)
+                storage.delete(media_keys_to_delete)
+
+            # Update progress with first batch
+            progress.update(
+                task_id,
+                updated=len(remote_media),
+                deleted=len(media_keys_to_delete),
+            )
+
+            if next_page_token:
+                while True:
+                    response = api_methods.get_library_state_page(next_page_token, self.bearer_token)
+                    _, next_page_token, remote_media, media_keys_to_delete = parse_db_state(response)
+
+                    with Storage(self.db_path) as storage:
+                        storage.update_state_tokens(state_token, next_page_token)
+                        storage.update(remote_media)
+                        storage.delete(media_keys_to_delete)
+
+                    # Get current counts from the progress task
+                    task = progress.tasks[task_id]
+                    progress.update(
+                        task_id,
+                        updated=task.fields["updated"] + len(remote_media),
+                        deleted=task.fields["deleted"] + len(media_keys_to_delete),
+                    )
+
+                    if not next_page_token:
+                        break

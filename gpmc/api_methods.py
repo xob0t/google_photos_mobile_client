@@ -428,7 +428,7 @@ def add_media_to_album(album_media_key: str, media_keys: Sequence[str], auth_tok
     return decoded_message
 
 
-def get_library_state(token: str, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
+def get_library_state(auth_token: str, state_token: str = "", timeout: int = DEFAULT_TIMEOUT) -> dict:
     headers = {
         "accept-encoding": "gzip",
         "Accept-Language": "en_US",
@@ -546,7 +546,7 @@ def get_library_state(token: str, auth_token: str, timeout: int = DEFAULT_TIMEOU
                 "25": {},
                 "26": {},
             },
-            "6": token,
+            "6": state_token,
             "7": 2,
             "9": {"1": {"2": {"1": {}, "2": {}}}, "2": {"3": {"2": 1}}, "3": {"2": {}}, "4": {}, "7": {"1": {}}, "8": {"1": 2, "2": "\x01\x02\x03\x05\x06\x07"}, "9": {}, "11": {"1": {}}},
             "11": [1, 2, 6],
@@ -593,7 +593,7 @@ def get_library_state(token: str, auth_token: str, timeout: int = DEFAULT_TIMEOU
     return decoded_message
 
 
-def get_library_state_page(token: str, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
+def get_library_state_page(page_token: str, auth_token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
     headers = {
         "accept-encoding": "gzip",
         "Accept-Language": "en_US",
@@ -701,7 +701,7 @@ def get_library_state_page(token: str, auth_token: str, timeout: int = DEFAULT_T
                 "24": {},
                 "25": {},
             },
-            "4": token,
+            "4": page_token,
             "7": 2,
             "9": {"1": {"2": {"1": {}, "2": {}}}, "2": {"3": {"2": 1}}, "3": {"2": {}}, "4": {}, "7": {"1": {}}, "8": {"1": 2, "2": "\x01\x02\x03\x05\x06"}, "9": {}},
             "11": [1, 2],
