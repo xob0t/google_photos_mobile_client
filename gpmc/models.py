@@ -4,20 +4,20 @@ from dataclasses import dataclass
 @dataclass(slots=True)
 class MediaItem:
     media_key: str
-    caption: str
     file_name: str
     dedup_key: str
     type: int
+    caption: str
     collection_id: str
     size_bytes: int
+    quota_charged_bytes: int
     utc_timestamp: int
     server_creation_timestamp: int
-    quota_charged_bytes: int
+    timezone_offset: int | None = None
     width: int | None = None
     height: int | None = None
     remote_url: str = ""
-    timezone_offset: int | None = None
-    content_version: str = ""
+    codec: str | None = None
     upload_status: int | None = None
     trash_timestamp: int | None = None
     is_archived: bool = False

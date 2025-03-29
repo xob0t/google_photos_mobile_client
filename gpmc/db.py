@@ -22,20 +22,20 @@ class Storage:
         self.conn.execute("""
         CREATE TABLE IF NOT EXISTS remote_media (
             media_key TEXT PRIMARY KEY,
-            caption TEXT,
             file_name TEXT,
             dedup_key TEXT,
             type INTEGER,
+            caption TEXT,
             collection_id TEXT,
             size_bytes INTEGER,
+            quota_charged_bytes INTEGER,
             utc_timestamp INTEGER,
             server_creation_timestamp INTEGER,
-            quota_charged_bytes INTEGER,
+            timezone_offset INTEGER,
             width INTEGER,
             height INTEGER,
             remote_url TEXT,
-            timezone_offset INTEGER,
-            content_version TEXT,
+            codec TEXT,
             upload_status INTEGER,
             trash_timestamp INTEGER,
             is_archived INTEGER,
@@ -61,6 +61,7 @@ class Storage:
             micro_video_height INTEGER
         )
         """)
+
         self.conn.execute("""
         CREATE TABLE IF NOT EXISTS state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -125,7 +126,7 @@ class Storage:
     def get_state_tokens(self) -> tuple[str, str]:
         """
         Get both state tokens as a tuple (state_token, next_page_token).
-        Returns (None, None) if no tokens are stored.
+        Returns ('', '') if no tokens are stored.
         """
         cursor = self.conn.execute("""
         SELECT state_token, next_page_token FROM state WHERE id = 1

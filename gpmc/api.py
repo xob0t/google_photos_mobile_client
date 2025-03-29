@@ -3,9 +3,9 @@ import time
 from urllib.parse import parse_qs
 from pathlib import Path
 
-import blackboxprotobuf
 import requests
 from requests.adapters import HTTPAdapter, Retry
+from blackboxprotobuf import decode_message, encode_message
 
 from . import message_types
 from .exceptions import UploadRejected
@@ -19,7 +19,6 @@ class Api:
         auth_data: str,
         proxy: str = "",
         language: str = "en_US",
-        user_agent: str = "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)",
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
         """
@@ -27,7 +26,7 @@ class Api:
         """
         self.proxy = proxy
         self.timeout = timeout
-        self.user_agent = user_agent
+        self.user_agent = "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)"
         self.language = language
         self.auth_data = auth_data
         self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
@@ -36,7 +35,7 @@ class Api:
     def bearer_token(self) -> str:
         """Property that automatically checks and renews the auth token if expired."""
         if int(self.auth_response_cache.get("Expiry", "0")) <= int(time.time()):
-            self.auth_response_cache = self.get_auth_token()
+            self.auth_response_cache = self._get_auth_token()
         if token := self.auth_response_cache.get("Auth", ""):
             return token
         raise RuntimeError("Auth response does not contain bearer token")
@@ -55,7 +54,7 @@ class Api:
         }
         return s
 
-    def get_auth_token(self) -> dict[str, str]:
+    def _get_auth_token(self) -> dict[str, str]:
         """
         Send auth request to get bearer token.
 
@@ -129,7 +128,7 @@ class Api:
 
         proto_body = {"1": 2, "2": 2, "3": 1, "4": 3, "7": file_size}
 
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.GET_UPLOAD_TOKEN)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.GET_UPLOAD_TOKEN)  # type: ignore
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -165,7 +164,7 @@ class Api:
         """
 
         proto_body = {"1": {"1": {"1": sha1_hash}, "2": {}}}
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.FIND_REMOTE_MEDIA_BY_HASH)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.FIND_REMOTE_MEDIA_BY_HASH)  # type: ignore
         headers = {
             "Accept-Encoding": "gzip",
             "Accept-Language": self.language,
@@ -182,7 +181,7 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         media_key = decoded_message["1"].get("2", {}).get("2", {}).get("1", None)
         return media_key
 
@@ -227,7 +226,7 @@ class Api:
 
         response.raise_for_status()
 
-        upload_response_decoded, _ = blackboxprotobuf.decode_message(response.content)
+        upload_response_decoded, _ = decode_message(response.content)
         return upload_response_decoded
 
     def commit_upload(
@@ -321,7 +320,7 @@ class Api:
             "3": bytes([1, 3]),
         }
 
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.COMMIT_UPLOAD)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.COMMIT_UPLOAD)  # type: ignore
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -340,7 +339,7 @@ class Api:
                 timeout=self.timeout,
             )
         response.raise_for_status()
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         try:
             media_key = decoded_message["1"]["3"]["1"]
         except KeyError as e:
@@ -368,7 +367,7 @@ class Api:
             "8": {"4": {"2": {}, "3": {"1": {}}, "4": {}, "5": {"1": {}}}},
             "9": {"1": 5, "2": {"1": 49029607, "2": "28"}},
         }
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.MOVE_TO_TRASH)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.MOVE_TO_TRASH)  # type: ignore
         headers = {
             "Accept-Encoding": "gzip",
             "Accept-Language": self.language,
@@ -385,7 +384,7 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         return decoded_message
 
     def create_album(self, album_name: str, media_keys: Sequence[str]) -> str:
@@ -412,7 +411,7 @@ class Api:
             "8": {"3": "Pixel XL", "4": "Google", "5": 28},
         }
 
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.CREATE_ALBUM)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.CREATE_ALBUM)  # type: ignore
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -432,7 +431,7 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         return decoded_message["1"]["1"]
 
     def add_media_to_album(self, album_media_key: str, media_keys: Sequence[str]) -> dict:
@@ -456,7 +455,7 @@ class Api:
             "6": {"3": "Pixel XL", "4": "Google", "5": 28},
             "7": int(time.time()),
         }
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.ADD_MEDIA_TO_ALBUM)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.ADD_MEDIA_TO_ALBUM)  # type: ignore
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -476,7 +475,7 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         return decoded_message
 
     def get_library_state(self, state_token: str = "") -> dict:
@@ -635,7 +634,7 @@ class Api:
             },
             "2": {"1": {"1": {"1": {"1": {}}, "2": {}}}, "2": {}},
         }
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.GET_LIB_STATE)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.GET_LIB_STATE)  # type: ignore
 
         with self._new_session() as session:
             response = session.post(
@@ -645,7 +644,7 @@ class Api:
                 timeout=self.timeout,
             )
 
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         return decoded_message
 
     def get_library_state_page(self, page_token: str) -> dict:
@@ -790,7 +789,7 @@ class Api:
             },
             "2": {"1": {"1": {"1": {"1": {}}, "2": {}}}, "2": {}},
         }
-        serialized_data = blackboxprotobuf.encode_message(proto_body, message_types.GET_LIB_PAGE)  # type: ignore
+        serialized_data = encode_message(proto_body, message_types.GET_LIB_PAGE)  # type: ignore
 
         with self._new_session() as session:
             response = session.post(
@@ -800,5 +799,5 @@ class Api:
                 timeout=self.timeout,
             )
 
-        decoded_message, _ = blackboxprotobuf.decode_message(response.content)
+        decoded_message, _ = decode_message(response.content)
         return decoded_message

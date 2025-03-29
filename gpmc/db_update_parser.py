@@ -1,5 +1,4 @@
 from .models import MediaItem
-
 from .utils import int64_to_float, int32_to_float, fixed32_to_float
 
 
@@ -15,7 +14,6 @@ def _parse_media_item(d: dict) -> MediaItem:
         size_bytes=d["2"]["10"],
         timezone_offset=d["2"].get("8", 0),
         utc_timestamp=d["2"]["7"],
-        content_version=d["2"]["26"],
         server_creation_timestamp=d["2"]["9"],
         upload_status=d["2"]["11"],
         quota_charged_bytes=d["2"]["35"]["2"],
@@ -55,6 +53,7 @@ def _parse_media_item(d: dict) -> MediaItem:
         item.height = d["5"]["3"]["4"]["5"]
         item.capture_frame_rate = int64_to_float(d["5"]["3"]["6"]["4"])
         item.encoded_frame_rate = int64_to_float(d["5"]["3"]["6"]["5"])
+        item.codec = d["5"]["3"]["6"]["6"]
 
     if d["5"].get("5", {}).get("2", {}).get("4"):
         # micro video
@@ -106,7 +105,7 @@ def _get_items_list(data: dict, key: str) -> list[dict]:
     return [items] if isinstance(items, dict) else items
 
 
-def parse_db_state(data: dict) -> tuple[str, str | None, list[MediaItem], list[str]]:
+def parse_db_update(data: dict) -> tuple[str, str | None, list[MediaItem], list[str]]:
     """Parse the library state from the raw data."""
     next_page_token = data["1"].get("1", "")
     state_token = data["1"].get("6", "")
