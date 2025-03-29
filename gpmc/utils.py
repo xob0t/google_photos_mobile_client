@@ -2,19 +2,6 @@ import logging
 import struct
 
 from rich.logging import RichHandler
-import requests
-from requests.adapters import HTTPAdapter, Retry
-
-
-def new_session_with_retries() -> requests.Session:
-    """Create a new request session with retry mechanism"""
-    # https://stackoverflow.com/questions/23267409/how-to-implement-retry-mechanism-into-python-requests-library
-    s = requests.Session()
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504])
-    adapter = HTTPAdapter(max_retries=retries)
-    s.mount("http://", adapter)
-    s.mount("https://", adapter)
-    return s
 
 
 def urlsafe_base64(base64_hash: str) -> str:
@@ -65,7 +52,7 @@ def parse_email(s: str) -> str:
     for line in s.split("&"):
         if "Email" in line:
             value = line.split("=")[1]
-            return value.replace("%40", "_")
+            return value.replace("%40", "@")
     raise ValueError("No email value in auth_data")
 
 
@@ -74,4 +61,4 @@ def parse_language(s: str) -> str:
     for line in s.split("&"):
         if "lang" in line:
             return line.split("=")[1]
-    raise ValueError("No language value in auth_data")
+    return ""

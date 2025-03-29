@@ -1,4 +1,3 @@
-import time
 from typing import Literal, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import signal
@@ -23,7 +22,7 @@ from rich.progress import (
 )
 
 from .db import Storage
-from . import api_methods
+from .api import Api, DEFAULT_TIMEOUT
 from . import utils
 from .hash_handler import calculate_sha1_hash, convert_sha1_hash
 from .db_state_updater import parse_db_state
@@ -31,7 +30,6 @@ from .db_state_updater import parse_db_state
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-DEFAULT_TIMEOUT = api_methods.DEFAULT_TIMEOUT
 
 LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 
@@ -39,13 +37,15 @@ LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 class Client:
     """Reverse engineered Google Photos mobile API client."""
 
-    def __init__(self, auth_data: str | None = None, timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
+    def __init__(self, auth_data: str = "", proxy: str = "", language: str = "en_US", timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
         """
         Initialize the Google Photos mobile client.
 
         Args:
             auth_data: Google authentication data string. If not provided, will attempt to use
                       the `GP_AUTH_DATA` environment variable.
+            proxy: Proxy url `protocol://username:password@ip:port`.
+            language: Accept-Language header value.
             log_level: Logging level to use. Must be one of "INFO", "DEBUG", "WARNING",
                       "ERROR", or "CRITICAL". Defaults to "INFO".
             timeout: Requests timeout, seconds. Defaults to DEFAULT_TIMEOUT.
@@ -58,20 +58,14 @@ class Client:
         self.valid_mimetypes = ["image/", "video/"]
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
-        self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
-        self.language = utils.parse_language(self.auth_data)
-        gpmc_dir = Path.home() / ".gpmc" / utils.parse_email(self.auth_data)
+        self.language = language or utils.parse_language(self.auth_data)
+        email = utils.parse_email(self.auth_data)
+        self.logger.info(f"User: {email}")
+        self.logger.info(f"Language: {self.language}")
+        self.api = Api(self.auth_data, proxy=proxy, language=self.language, timeout=timeout)
+        gpmc_dir = Path.home() / ".gpmc" / email
         gpmc_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = gpmc_dir / "storage.db"
-
-    @property
-    def bearer_token(self) -> str:
-        """Property that automatically checks and renews the auth token if expired."""
-        if int(self.auth_response_cache.get("Expiry", "0")) <= int(time.time()):
-            self.auth_response_cache = api_methods.get_auth_token(self.auth_data, timeout=self.timeout)
-        if token := self.auth_response_cache.get("Auth", ""):
-            return token
-        raise RuntimeError("Auth response does not contain bearer token")
 
     def _handle_auth_data(self, auth_data: str | None) -> str:
         """
@@ -86,7 +80,7 @@ class Client:
         Raises:
             ValueError: If no auth_data is provided and GP_AUTH_DATA environment variable is not set.
         """
-        if auth_data is not None:
+        if auth_data:
             return auth_data
 
         env_auth = os.getenv("GP_AUTH_DATA")
@@ -129,14 +123,14 @@ class Client:
 
             if not force_upload:
                 progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}")
-                if remote_media_key := api_methods.find_remote_media_by_hash(hash_bytes, auth_token=self.bearer_token, timeout=self.timeout):
+                if remote_media_key := self.api.find_remote_media_by_hash(hash_bytes):
                     return {file_path.absolute().as_posix(): remote_media_key}
 
-            upload_token = api_methods.get_upload_token(hash_b64, file_size, auth_token=self.bearer_token, timeout=self.timeout)
+            upload_token = self.api.get_upload_token(hash_b64, file_size)
             progress.reset(task_id=file_progress_id)
             progress.update(task_id=file_progress_id, description=f"Uploading: {file_path.name}")
             with progress.open(file_path, "rb", task_id=file_progress_id) as file:
-                upload_response = api_methods.upload_file(file=file, upload_token=upload_token, auth_token=self.bearer_token, timeout=self.timeout)
+                upload_response = self.api.upload_file(file=file, upload_token=upload_token)
             progress.update(task_id=file_progress_id, description=f"Finalizing Upload: {file_path.name}")
             last_modified_timestamp = int(os.path.getmtime(file_path))
             model = "Pixel XL"
@@ -146,13 +140,11 @@ class Client:
                 model = "Pixel 2"
             if use_quota:
                 model = "Pixel 8"
-            media_key = api_methods.commit_upload(
+            media_key = self.api.commit_upload(
                 upload_response_decoded=upload_response,
                 file_name=file_path.name,
                 sha1_hash=hash_bytes,
-                auth_token=self.bearer_token,
                 upload_timestamp=last_modified_timestamp,
-                timeout=self.timeout,
                 model=model,
                 quality=quality,
             )
@@ -173,7 +165,9 @@ class Client:
         """
 
         hash_bytes, _ = convert_sha1_hash(sha1_hash)
-        return api_methods.find_remote_media_by_hash(hash_bytes, auth_token=self.bearer_token, timeout=self.timeout)
+        return self.api.find_remote_media_by_hash(
+            hash_bytes,
+        )
 
     def _handle_album_creation(self, results: dict[str, str], album_name: str, show_progress: bool) -> None:
         """
@@ -516,7 +510,7 @@ class Client:
 
         hashes_b64 = [convert_sha1_hash(hash)[1] for hash in sha1_hashes]  # type: ignore
         dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
-        response = api_methods.move_remote_media_to_trash(dedup_keys=dedup_keys, auth_token=self.bearer_token)
+        response = self.api.move_remote_media_to_trash(dedup_keys=dedup_keys)
         return response
 
     def add_to_album(self, media_keys: Sequence[str], album_name: str, show_progress: bool) -> list[str]:
@@ -565,11 +559,11 @@ class Client:
                     batch = album_batch[j : j + batch_size]
                     if current_album_key is None:
                         # Create the album with the first batch
-                        current_album_key = api_methods.create_album(album_name=current_album_name, media_keys=batch, auth_token=self.bearer_token)
+                        current_album_key = self.api.create_album(album_name=current_album_name, media_keys=batch)
                         album_keys.append(current_album_key)
                     else:
                         # Add to the existing album
-                        api_methods.add_media_to_album(album_media_key=current_album_key, media_keys=batch, auth_token=self.bearer_token)
+                        self.api.add_media_to_album(album_media_key=current_album_key, media_keys=batch)
                     progress.update(task, advance=len(batch))
                 album_counter += 1
         return album_keys
@@ -596,7 +590,7 @@ class Client:
                 state_token, next_page_token = storage.get_state_tokens()
 
             # First batch
-            response = api_methods.get_library_state(self.bearer_token, state_token)
+            response = self.api.get_library_state(state_token)
             state_token, next_page_token, remote_media, media_keys_to_delete = parse_db_state(response)
 
             with Storage(self.db_path) as storage:
@@ -613,7 +607,7 @@ class Client:
 
             if next_page_token:
                 while True:
-                    response = api_methods.get_library_state_page(next_page_token, self.bearer_token)
+                    response = self.api.get_library_state_page(next_page_token)
                     _, next_page_token, remote_media, media_keys_to_delete = parse_db_state(response)
 
                     with Storage(self.db_path) as storage:
@@ -622,7 +616,7 @@ class Client:
                         storage.delete(media_keys_to_delete)
 
                     # Get current counts from the progress task
-                    task = progress.tasks[task_id]
+                    task = progress.tasks[int(task_id)]
                     progress.update(
                         task_id,
                         updated=task.fields["updated"] + len(remote_media),

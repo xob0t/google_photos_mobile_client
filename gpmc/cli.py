@@ -2,7 +2,7 @@ import argparse
 from pprint import pp
 
 from .client import Client
-from .api_methods import DEFAULT_TIMEOUT
+from .api import DEFAULT_TIMEOUT
 
 
 def main():
@@ -12,6 +12,8 @@ def main():
     # Common arguments for all commands
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument("--auth-data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
+    common_parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@ip:port`")
+    common_parser.add_argument("--lang", type=str, help="Client's `Accept-Language` header value.")
     common_parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
     common_parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
 
@@ -59,9 +61,18 @@ def main():
     args.func(args)
 
 
+def new_client(args) -> Client:
+    return Client(
+        auth_data=args.auth_data,
+        proxy=args.proxy,
+        language=args.lang,
+        timeout=args.timeout,
+        log_level=args.log_level,
+    )
+
+
 def handle_upload(args):
-    client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
-    output = client.upload(
+    output = new_client(args).upload(
         target=args.path,
         album_name=args.album,
         use_quota=args.use_quota,
@@ -81,5 +92,4 @@ def handle_upload(args):
 
 
 def handle_cache(args):
-    client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
-    client.update_cache()
+    new_client(args).update_cache()
