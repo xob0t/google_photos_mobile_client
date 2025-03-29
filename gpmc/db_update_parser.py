@@ -1,5 +1,4 @@
 from .models import MediaItem
-
 from .utils import int64_to_float, int32_to_float, fixed32_to_float
 
 
@@ -106,7 +105,7 @@ def _get_items_list(data: dict, key: str) -> list[dict]:
     return [items] if isinstance(items, dict) else items
 
 
-def parse_db_state(data: dict) -> tuple[str, str | None, list[MediaItem], list[str]]:
+def parse_db_update(data: dict) -> tuple[str, str | None, list[MediaItem], list[str]]:
     """Parse the library state from the raw data."""
     next_page_token = data["1"].get("1", "")
     state_token = data["1"].get("6", "")

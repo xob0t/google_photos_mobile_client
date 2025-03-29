@@ -25,7 +25,7 @@ from .db import Storage
 from .api import Api, DEFAULT_TIMEOUT
 from . import utils
 from .hash_handler import calculate_sha1_hash, convert_sha1_hash
-from .db_state_updater import parse_db_state
+from .db_update_parser import parse_db_update
 
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -569,7 +569,7 @@ class Client:
         return album_keys
 
     def update_cache(self, show_progress: bool = True):
-        """Update local library cache"""
+        """Incrementally update local library cache"""
         # Initialize progress bar with updated and deleted counters
         progress = Progress(
             TextColumn("{task.description}"),
@@ -591,7 +591,7 @@ class Client:
 
             # First batch
             response = self.api.get_library_state(state_token)
-            state_token, next_page_token, remote_media, media_keys_to_delete = parse_db_state(response)
+            state_token, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
 
             with Storage(self.db_path) as storage:
                 storage.update_state_tokens(state_token, next_page_token)
@@ -608,7 +608,7 @@ class Client:
             if next_page_token:
                 while True:
                     response = self.api.get_library_state_page(next_page_token)
-                    _, next_page_token, remote_media, media_keys_to_delete = parse_db_state(response)
+                    _, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
 
                     with Storage(self.db_path) as storage:
                         storage.update_state_tokens(state_token, next_page_token)

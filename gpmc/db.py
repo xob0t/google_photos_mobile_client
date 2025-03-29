@@ -125,7 +125,7 @@ class Storage:
     def get_state_tokens(self) -> tuple[str, str]:
         """
         Get both state tokens as a tuple (state_token, next_page_token).
-        Returns (None, None) if no tokens are stored.
+        Returns ('', '') if no tokens are stored.
         """
         cursor = self.conn.execute("""
         SELECT state_token, next_page_token FROM state WHERE id = 1
