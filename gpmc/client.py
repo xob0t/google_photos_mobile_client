@@ -505,14 +505,24 @@ class Client:
             requests.HTTPError: If the API request fails.
         """
 
-        if isinstance(sha1_hashes, str | bytes):
+        if isinstance(sha1_hashes, (str, bytes)):
             sha1_hashes = [sha1_hashes]
 
-        # TODO handle keys in batches to avoid api limits
+        try:
+            # Convert all hashes to Base64 format
+            hashes_b64 = [convert_sha1_hash(hash)[1] for hash in sha1_hashes]  # type: ignore
+            dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
+        except (TypeError, ValueError) as e:
+            raise ValueError("Invalid SHA-1 hash format") from e
 
-        hashes_b64 = [convert_sha1_hash(hash)[1] for hash in sha1_hashes]  # type: ignore
-        dedup_keys = [utils.urlsafe_base64(hash) for hash in hashes_b64]
-        response = self.api.move_remote_media_to_trash(dedup_keys=dedup_keys)
+        # Process in batches of 500 to avoid API limits
+        batch_size = 500
+        response = {}
+        for i in range(0, len(dedup_keys), batch_size):
+            batch = dedup_keys[i : i + batch_size]
+            batch_response = self.api.move_remote_media_to_trash(dedup_keys=batch)
+            response.update(batch_response)  # Combine responses if needed
+
         return response
 
     def add_to_album(self, media_keys: Sequence[str], album_name: str, show_progress: bool) -> list[str]:
