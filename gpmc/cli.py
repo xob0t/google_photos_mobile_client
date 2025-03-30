@@ -14,6 +14,7 @@ def main():
     common_parser.add_argument("--auth-data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
     common_parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@ip:port`")
     common_parser.add_argument("--lang", type=str, help="Client's `Accept-Language` header value.")
+    common_parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     common_parser.add_argument("--timeout", type=int, default=30, help=f"Requests timeout, seconds. Defaults to {DEFAULT_TIMEOUT}.")
     common_parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level (default: INFO)")
 
@@ -32,7 +33,6 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
-    upload_parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     upload_parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
     upload_parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
     upload_parser.add_argument("--force-upload", action="store_true", help="Upload files regardless of their presence in Google Photos (determined by hash).")
@@ -92,4 +92,6 @@ def handle_upload(args):
 
 
 def handle_cache(args):
-    new_client(args).update_cache()
+    new_client(args).update_cache(
+        show_progress=args.progress,
+    )
