@@ -296,14 +296,14 @@ class Client:
                             }
 
         Raises:
-            TypeError: If `target` is not a file path, directory path, or an iterable of such paths.
+            TypeError: If `target` is not a file path, directory path, or a squence of such paths.
             ValueError: If no valid media files are found to upload.
         """
         if isinstance(target, (str, Path)):
             target = [target]
 
         if not isinstance(target, Sequence) or not all(isinstance(p, (str, Path)) for p in target):
-            raise TypeError("`target` must be a file path, a directory path, or an iterable of such paths.")
+            raise TypeError("`target` must be a file path, a directory path, or a squence of such paths.")
 
         # Expand all paths to a flat list of files
         files_to_upload = [file for path in target for file in self._search_for_media_files(path, recursive=recursive)]
