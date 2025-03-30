@@ -1,5 +1,5 @@
 import unittest
-
+from pathlib import Path
 from gpmc import Client
 
 
@@ -42,9 +42,9 @@ class TestUpload(unittest.TestCase):
         print(media_key)
 
     def test_image_upload_with_hash(self):
-        """Test media upload with known hash.
-        If hash is already known, it can be passed to avoid calculating it again."""
-        media_key = self.client.upload(target=self.image_file_path, sha1_hash=self.image_sha1_hash_b64, force_upload=True, show_progress=True)
+        """Test media upload with precalculated hash."""
+        hash_pair = {Path(self.image_file_path): self.image_sha1_hash_b64}
+        media_key = self.client.upload(target=hash_pair, force_upload=True, show_progress=True)
         print(media_key)
 
     def test_mkv_upload(self):
