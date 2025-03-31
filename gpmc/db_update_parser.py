@@ -53,7 +53,6 @@ def _parse_media_item(d: dict) -> MediaItem:
         item.height = d["5"]["3"]["4"]["5"]
         item.capture_frame_rate = int64_to_float(d["5"]["3"]["6"]["4"])
         item.encoded_frame_rate = int64_to_float(d["5"]["3"]["6"]["5"])
-        item.codec = d["5"]["3"]["6"]["6"]
 
     if d["5"].get("5", {}).get("2", {}).get("4"):
         # micro video

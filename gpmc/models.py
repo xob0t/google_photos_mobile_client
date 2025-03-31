@@ -17,7 +17,6 @@ class MediaItem:
     width: int | None = None
     height: int | None = None
     remote_url: str = ""
-    codec: str | None = None
     upload_status: int | None = None
     trash_timestamp: int | None = None
     is_archived: bool = False

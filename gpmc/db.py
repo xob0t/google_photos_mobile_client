@@ -35,7 +35,6 @@ class Storage:
             width INTEGER,
             height INTEGER,
             remote_url TEXT,
-            codec TEXT,
             upload_status INTEGER,
             trash_timestamp INTEGER,
             is_archived INTEGER,
