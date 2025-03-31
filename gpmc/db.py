@@ -65,7 +65,8 @@ class Storage:
         CREATE TABLE IF NOT EXISTS state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
             state_token TEXT,
-            next_page_token TEXT
+            next_page_token TEXT,
+            init_complete INTEGER
         )
         """)
 
@@ -99,8 +100,11 @@ class Storage:
         values = [tuple(item[col] for col in columns) for item in items_dicts]
 
         # Execute in a transaction
-        with self.conn:
-            self.conn.executemany(sql, values)
+        try:
+            with self.conn:
+                self.conn.executemany(sql, values)
+        except Exception as e:
+            pass
 
     def delete(self, media_keys: Sequence[str]) -> None:
         """
@@ -151,6 +155,22 @@ class Storage:
             sql = f"UPDATE state SET {', '.join(updates)} WHERE id = 1"
             with self.conn:
                 self.conn.execute(sql, params)
+
+    def get_init_state(self) -> bool:
+        """ """
+        cursor = self.conn.execute("""
+        SELECT init_complete FROM state WHERE id = 1
+        """)
+        return cursor.fetchone()[0] or False
+
+    def set_init_state(self, state: int) -> None:
+        """ """
+        self.conn.execute(
+            """
+        UPDATE state SET init_complete = ? WHERE id = 1
+        """,
+            [state],
+        )
 
     def close(self) -> None:
         """Close the database connection."""

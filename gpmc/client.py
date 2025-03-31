@@ -597,30 +597,61 @@ class Client:
         with context:
             # Get saved state tokens
             with Storage(self.db_path) as storage:
-                state_token, next_page_token = storage.get_state_tokens()
+                init_state = storage.get_init_state()
 
-            if next_page_token:
-                self._process_pages(progress, task_id, next_page_token)
+            if not init_state:
+                self.logger.info("Cache Initiation")
+                self._cache_init(progress, task_id)
+                with Storage(self.db_path) as storage:
+                    storage.set_init_state(1)
+            self.logger.info("Cache Update")
+            self._cache_update(progress, task_id)
 
-            response = self.api.get_library_state(state_token)
-            state_token, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
+    def _cache_update(self, progress, task_id):
+        with Storage(self.db_path) as storage:
+            state_token, _ = storage.get_state_tokens()
+        response = self.api.get_library_state(state_token)
+        next_state_token, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
 
-            with Storage(self.db_path) as storage:
-                storage.update_state_tokens(state_token, next_page_token)
-                storage.update(remote_media)
-                storage.delete(media_keys_to_delete)
+        with Storage(self.db_path) as storage:
+            storage.update_state_tokens(next_state_token, next_page_token)
+            storage.update(remote_media)
+            storage.delete(media_keys_to_delete)
 
-            task = progress.tasks[int(task_id)]
-            progress.update(
-                task_id,
-                updated=task.fields["updated"] + len(remote_media),
-                deleted=task.fields["deleted"] + len(media_keys_to_delete),
-            )
+        task = progress.tasks[int(task_id)]
+        progress.update(
+            task_id,
+            updated=task.fields["updated"] + len(remote_media),
+            deleted=task.fields["deleted"] + len(media_keys_to_delete),
+        )
 
-            if next_page_token:
-                self._process_pages(progress, task_id, next_page_token)
+        if next_page_token:
+            self._process_pages(progress, task_id, state_token, next_page_token)
 
-    def _process_pages(self, progress: Progress, task_id: TaskID, page_token: str):
+    def _cache_init(self, progress, task_id):
+        with Storage(self.db_path) as storage:
+            state_token, next_page_token = storage.get_state_tokens()
+
+        if next_page_token:
+            self._process_pages_init(progress, task_id, next_page_token)
+
+        response = self.api.get_library_state(state_token)
+        state_token, next_page_token, remote_media, _ = parse_db_update(response)
+
+        with Storage(self.db_path) as storage:
+            storage.update_state_tokens(state_token, next_page_token)
+            storage.update(remote_media)
+
+        task = progress.tasks[int(task_id)]
+        progress.update(
+            task_id,
+            updated=task.fields["updated"] + len(remote_media),
+        )
+
+        if next_page_token:
+            self._process_pages_init(progress, task_id, next_page_token)
+
+    def _process_pages_init(self, progress: Progress, task_id: TaskID, page_token: str):
         """
         Process paginated results during cache update.
 
@@ -631,7 +662,35 @@ class Client:
         """
         next_page_token: str | None = page_token
         while True:
-            response = self.api.get_library_state_page(next_page_token)
+            response = self.api.get_library_page_init(next_page_token)
+            _, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
+
+            with Storage(self.db_path) as storage:
+                storage.update_state_tokens(next_page_token=next_page_token)
+                storage.update(remote_media)
+                storage.delete(media_keys_to_delete)
+
+            task = progress.tasks[int(task_id)]
+            progress.update(
+                task_id,
+                updated=task.fields["updated"] + len(remote_media),
+                deleted=task.fields["deleted"] + len(media_keys_to_delete),
+            )
+            if not next_page_token:
+                break
+
+    def _process_pages(self, progress: Progress, task_id: TaskID, state_token: str, page_token: str):
+        """
+        Process paginated results during cache update.
+
+        Args:
+            progress: Rich Progress object for tracking.
+            task_id: ID of the progress task.
+            page_token: Token for fetching page of results.
+        """
+        next_page_token: str | None = page_token
+        while True:
+            response = self.api.get_library_page(next_page_token, state_token)
             _, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
 
             with Storage(self.db_path) as storage:
