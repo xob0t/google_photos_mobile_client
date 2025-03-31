@@ -65,14 +65,14 @@ class Storage:
         CREATE TABLE IF NOT EXISTS state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
             state_token TEXT,
-            next_page_token TEXT,
+            page_token TEXT,
             init_complete INTEGER
         )
         """)
 
         self.conn.execute("""
-        INSERT OR IGNORE INTO state (id, state_token, next_page_token)
-        VALUES (1, '', '')
+        INSERT OR IGNORE INTO state (id, state_token, page_token, init_complete)
+        VALUES (1, '', '', 0)
         """)
         self.conn.commit()
 
@@ -128,15 +128,15 @@ class Storage:
 
     def get_state_tokens(self) -> tuple[str, str]:
         """
-        Get both state tokens as a tuple (state_token, next_page_token).
+        Get both state tokens as a tuple (state_token, page_token).
         Returns ('', '') if no tokens are stored.
         """
         cursor = self.conn.execute("""
-        SELECT state_token, next_page_token FROM state WHERE id = 1
+        SELECT state_token, page_token FROM state WHERE id = 1
         """)
         return cursor.fetchone() or ("", "")
 
-    def update_state_tokens(self, state_token: str | None = None, next_page_token: str | None = None) -> None:
+    def update_state_tokens(self, state_token: str | None = None, page_token: str | None = None) -> None:
         """
         Update one or both state tokens.
         Pass None to leave a token unchanged.
@@ -147,9 +147,9 @@ class Storage:
         if state_token is not None:
             updates.append("state_token = ?")
             params.append(state_token)
-        if next_page_token is not None:
-            updates.append("next_page_token = ?")
-            params.append(next_page_token)
+        if page_token is not None:
+            updates.append("page_token = ?")
+            params.append(page_token)
 
         if updates:
             sql = f"UPDATE state SET {', '.join(updates)} WHERE id = 1"

@@ -36,11 +36,11 @@ LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 
 
 class Client:
-    """Reverse engineered Google Photos mobile API client."""
+    """Google Photos client based on reverse engineered mobile API."""
 
     def __init__(self, auth_data: str = "", proxy: str = "", language: str = "en_US", timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
         """
-        Initialize the Google Photos mobile client.
+        Google Photos client based on reverse engineered mobile API.
 
         Args:
             auth_data: Google authentication data string. If not provided, will attempt to use
@@ -666,7 +666,7 @@ class Client:
             _, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
 
             with Storage(self.db_path) as storage:
-                storage.update_state_tokens(next_page_token=next_page_token)
+                storage.update_state_tokens(page_token=next_page_token)
                 storage.update(remote_media)
                 storage.delete(media_keys_to_delete)
 
@@ -694,7 +694,7 @@ class Client:
             _, next_page_token, remote_media, media_keys_to_delete = parse_db_update(response)
 
             with Storage(self.db_path) as storage:
-                storage.update_state_tokens(next_page_token=next_page_token)
+                storage.update_state_tokens(page_token=next_page_token)
                 storage.update(remote_media)
                 storage.delete(media_keys_to_delete)
 
