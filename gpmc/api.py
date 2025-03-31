@@ -479,6 +479,14 @@ class Api:
         return decoded_message
 
     def get_library_state(self, state_token: str = "") -> dict:
+        """Get library state
+
+        Args:
+            state_token: Previously received state_token.
+
+        Returns:
+            dict: Decoded state response.
+        """
         headers = {
             "accept-encoding": "gzip",
             "Accept-Language": self.language,
@@ -648,6 +656,11 @@ class Api:
         return decoded_message
 
     def get_library_page_init(self, page_token: str = "") -> dict:
+        """Get library state page during init process
+
+        Returns:
+            dict: Decoded state response.
+        """
         headers = {
             "accept-encoding": "gzip",
             "Accept-Language": self.language,
@@ -803,6 +816,11 @@ class Api:
         return decoded_message
 
     def get_library_page(self, page_token: str = "", state_token: str = "") -> dict:
+        """Get library state page
+
+        Returns:
+            dict: Decoded state response.
+        """
         headers = {
             "accept-encoding": "gzip",
             "Accept-Language": self.language,
