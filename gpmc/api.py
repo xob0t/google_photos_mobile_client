@@ -652,6 +652,8 @@ class Api:
                 timeout=self.timeout,
             )
 
+        response.raise_for_status()
+
         decoded_message, _ = decode_message(response.content)
         return decoded_message
 
@@ -811,6 +813,8 @@ class Api:
                 data=serialized_data,
                 timeout=self.timeout,
             )
+
+        response.raise_for_status()
 
         decoded_message, _ = decode_message(response.content)
         return decoded_message
@@ -974,6 +978,8 @@ class Api:
                 data=serialized_data,
                 timeout=self.timeout,
             )
+
+        response.raise_for_status()
 
         decoded_message, _ = decode_message(response.content)
         return decoded_message
