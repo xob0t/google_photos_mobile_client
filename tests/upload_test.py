@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-from gpmc import Client
+from gpmc import Client, utils
 
 
 class TestUpload(unittest.TestCase):
@@ -11,6 +11,11 @@ class TestUpload(unittest.TestCase):
         self.directory_path = "C:/Users/admin/Pictures"
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
+
+    def test_set_caption(self):
+        """Test filter."""
+        dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
+        self.client.api.set_item_caption(dedup_key=dedup_key, caption="foobar")
 
     def test_filter(self):
         """Test filter."""
