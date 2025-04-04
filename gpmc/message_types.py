@@ -2120,3 +2120,5 @@ GET_LIB_PAGE = {
         "type": "message",
     },
 }
+
+SET_CAPTION = {"2": {"type": "string"}, "3": {"type": "string"}}
