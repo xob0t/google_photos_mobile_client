@@ -10,7 +10,8 @@ from blackboxprotobuf import decode_message, encode_message
 from . import message_types
 from .exceptions import UploadRejected
 
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 60
+RETRIES = 10
 
 
 class Api:
@@ -44,7 +45,7 @@ class Api:
         """Create a new request session with retry mechanism"""
         # https://stackoverflow.com/questions/23267409/how-to-implement-retry-mechanism-into-python-requests-library
         s = requests.Session()
-        retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504])
+        retries = Retry(total=RETRIES, backoff_factor=1, status_forcelist=[502, 503, 504])
         adapter = HTTPAdapter(max_retries=retries)
         s.mount("http://", adapter)
         s.mount("https://", adapter)
