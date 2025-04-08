@@ -100,11 +100,8 @@ class Storage:
         values = [tuple(item[col] for col in columns) for item in items_dicts]
 
         # Execute in a transaction
-        try:
-            with self.conn:
-                self.conn.executemany(sql, values)
-        except Exception as e:
-            pass
+        with self.conn:
+            self.conn.executemany(sql, values)
 
     def delete(self, media_keys: Sequence[str]) -> None:
         """

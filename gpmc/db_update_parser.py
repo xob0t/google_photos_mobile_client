@@ -6,7 +6,7 @@ def _parse_media_item(d: dict) -> MediaItem:
     """Parse a single media item from the raw data."""
     item = MediaItem(
         media_key=d["1"],
-        caption=d["2"].get("3-1"),
+        caption=next((d["2"][key] for key in d["2"] if key.startswith("3")), "") or None,
         file_name=d["2"]["4"],
         dedup_key=d["2"]["21"]["1"],
         type=d["5"]["1"],
@@ -48,11 +48,11 @@ def _parse_media_item(d: dict) -> MediaItem:
     if d["5"].get("3"):
         # video
         item.remote_url = d["5"]["3"]["2"]["1"]
-        item.duration = d["5"]["3"]["4"]["1"]
-        item.width = d["5"]["3"]["4"]["4"]
-        item.height = d["5"]["3"]["4"]["5"]
-        item.capture_frame_rate = int64_to_float(d["5"]["3"]["6"]["4"])
-        item.encoded_frame_rate = int64_to_float(d["5"]["3"]["6"]["5"])
+        item.duration = d["5"]["3"]["4"].get("1")
+        item.width = d["5"]["3"]["4"].get("4")
+        item.height = d["5"]["3"]["4"].get("5")
+        item.capture_frame_rate = d["5"]["3"].get("6", {}).get("4") and int64_to_float(d["5"]["3"]["6"]["4"])
+        item.encoded_frame_rate = d["5"]["3"].get("6", {}).get("5") and int64_to_float(d["5"]["3"]["6"]["5"])
 
     if d["5"].get("5", {}).get("2", {}).get("4"):
         # micro video
