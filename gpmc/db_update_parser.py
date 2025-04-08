@@ -1,14 +1,24 @@
+import base64
+
 from .models import MediaItem
-from .utils import int64_to_float, int32_to_float, fixed32_to_float
+from .utils import int64_to_float, int32_to_float, fixed32_to_float, urlsafe_base64
 
 
 def _parse_media_item(d: dict) -> MediaItem:
     """Parse a single media item from the raw data."""
+
+    dedup_key = next((d["2"]["21"][key] for key in d["2"]["21"] if key.startswith("1")), "")
+    if not isinstance(dedup_key, str):
+        try:
+            dedup_key = urlsafe_base64(base64.b64encode(d["2"]["13"]["1"]).decode())
+        except Exception as e:
+            raise RuntimeError("Error parsing dedup_key") from e
+
     item = MediaItem(
         media_key=d["1"],
         caption=next((d["2"][key] for key in d["2"] if key.startswith("3")), "") or None,
         file_name=d["2"]["4"],
-        dedup_key=d["2"]["21"]["1"],
+        dedup_key=dedup_key,
         type=d["5"]["1"],
         collection_id=d["2"]["1"]["1"],
         size_bytes=d["2"]["10"],
