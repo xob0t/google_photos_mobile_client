@@ -6,6 +6,7 @@ class MediaItem:
     media_key: str
     file_name: str
     dedup_key: str
+    is_canonical: bool
     type: int
     caption: str | None
     collection_id: str

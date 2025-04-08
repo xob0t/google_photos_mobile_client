@@ -24,6 +24,7 @@ class Storage:
             media_key TEXT PRIMARY KEY,
             file_name TEXT,
             dedup_key TEXT,
+            is_canonical BOOL,
             type INTEGER,
             caption TEXT,
             collection_id TEXT,

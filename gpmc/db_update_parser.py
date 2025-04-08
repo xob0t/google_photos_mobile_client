@@ -19,6 +19,7 @@ def _parse_media_item(d: dict) -> MediaItem:
         caption=next((d["2"][key] for key in d["2"] if key.startswith("3")), "") or None,
         file_name=d["2"]["4"],
         dedup_key=dedup_key,
+        is_canonical=not any(prop.get("1") == 27 for prop in d["2"]["5"]),
         type=d["5"]["1"],
         collection_id=d["2"]["1"]["1"],
         size_bytes=d["2"]["10"],
