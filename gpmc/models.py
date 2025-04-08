@@ -12,6 +12,7 @@ class MediaItem:
     collection_id: str
     size_bytes: int
     quota_charged_bytes: int
+    origin: str
     utc_timestamp: int
     server_creation_timestamp: int
     timezone_offset: int | None = None

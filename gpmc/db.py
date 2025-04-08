@@ -30,6 +30,7 @@ class Storage:
             collection_id TEXT,
             size_bytes INTEGER,
             quota_charged_bytes INTEGER,
+            origin TEXT,
             utc_timestamp INTEGER,
             server_creation_timestamp INTEGER,
             timezone_offset INTEGER,

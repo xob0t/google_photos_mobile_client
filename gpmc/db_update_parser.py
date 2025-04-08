@@ -14,6 +14,12 @@ def _parse_media_item(d: dict) -> MediaItem:
         except Exception as e:
             raise RuntimeError("Error parsing dedup_key") from e
 
+    origin_map = {
+        1: "self",
+        3: "partner",
+        4: "shared",
+    }
+
     item = MediaItem(
         media_key=d["1"],
         caption=next((d["2"][key] for key in d["2"] if key.startswith("3")), "") or None,
@@ -28,6 +34,7 @@ def _parse_media_item(d: dict) -> MediaItem:
         server_creation_timestamp=d["2"]["9"],
         upload_status=d["2"]["11"],
         quota_charged_bytes=d["2"]["35"]["2"],
+        origin=origin_map[d["2"]["30"]["1"]],
         trash_timestamp=d["2"]["16"].get("3", 0),
         is_archived=d["2"]["29"]["1"] == 1,
         is_favorite=d["2"]["31"]["1"] == 1,
