@@ -162,12 +162,8 @@ class Storage:
 
     def set_init_state(self, state: int) -> None:
         """ """
-        self.conn.execute(
-            """
-        UPDATE state SET init_complete = ? WHERE id = 1
-        """,
-            [state],
-        )
+        with self.conn:
+            self.conn.execute(f"UPDATE state SET init_complete = {state} WHERE id = 1")
 
     def close(self) -> None:
         """Close the database connection."""
