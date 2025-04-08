@@ -7,7 +7,7 @@ class MediaItem:
     file_name: str
     dedup_key: str
     type: int
-    caption: str
+    caption: str | None
     collection_id: str
     size_bytes: int
     quota_charged_bytes: int
