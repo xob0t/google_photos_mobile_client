@@ -59,9 +59,10 @@ def _parse_media_item(d: dict) -> MediaItem:
     if d["5"].get("3"):
         # video
         item.remote_url = d["5"]["3"]["2"]["1"]
-        item.duration = d["5"]["3"]["4"].get("1")
-        item.width = d["5"]["3"]["4"].get("4")
-        item.height = d["5"]["3"]["4"].get("5")
+        if d["5"]["3"].get("4"):
+            item.duration = d["5"]["3"]["4"].get("1")
+            item.width = d["5"]["3"]["4"].get("4")
+            item.height = d["5"]["3"]["4"].get("5")
         item.capture_frame_rate = d["5"]["3"].get("6", {}).get("4") and int64_to_float(d["5"]["3"]["6"]["4"])
         item.encoded_frame_rate = d["5"]["3"].get("6", {}).get("5") and int64_to_float(d["5"]["3"]["6"]["5"])
 
