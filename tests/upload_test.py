@@ -12,6 +12,10 @@ class TestUpload(unittest.TestCase):
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
 
+    def test_cache_upate(self):
+        """Test get library data."""
+        self.client.update_cache()
+
     def test_set_caption(self):
         """Test filter."""
         dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
