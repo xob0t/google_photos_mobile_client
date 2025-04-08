@@ -53,6 +53,8 @@ class Api:
             "http": self.proxy,
             "https": self.proxy,
         }
+        if self.proxy:
+            s.verify = False
         return s
 
     def _get_auth_token(self) -> dict[str, str]:
