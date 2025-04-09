@@ -1066,3 +1066,38 @@ class Api:
         response.raise_for_status()
 
         return response.content
+
+    def set_favorite(self, dedup_key: str, is_favorite: bool) -> dict:
+        """Sets or removes the favorite status for a single item.
+
+        Returns:
+            dict: Decoded state response.
+        """
+        headers = {
+            "accept-encoding": "gzip",
+            "Accept-Language": self.language,
+            "content-type": "application/x-protobuf",
+            "User-Agent": self.user_agent,
+            "Authorization": f"Bearer {self.bearer_token}",
+            "x-goog-ext-173412678-bin": "CgcIAhClARgC",
+            "x-goog-ext-174067345-bin": "CgIIAg==",
+        }
+
+        action_map = {True: 1, False: 2}
+
+        proto_body = {"1": {"2": dedup_key}, "2": {"1": action_map[is_favorite]}, "3": {"1": {"19": {}}}}
+
+        serialized_data = encode_message(proto_body, message_types.SET_FAVORITE)  # type: ignore
+
+        with self._new_session() as session:
+            response = session.post(
+                "https://photosdata-pa.googleapis.com/6439526531001121323/5144645502632292153",
+                headers=headers,
+                data=serialized_data,
+                timeout=self.timeout,
+            )
+
+        response.raise_for_status()
+
+        decoded_message, _ = decode_message(response.content)
+        return decoded_message

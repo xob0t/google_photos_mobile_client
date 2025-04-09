@@ -2122,3 +2122,9 @@ GET_LIB_PAGE = {
 }
 
 SET_CAPTION = {"2": {"type": "string"}, "3": {"type": "string"}}
+
+SET_FAVORITE = {
+    "1": {"field_order": ["2"], "message_typedef": {"2": {"type": "string"}}, "type": "message"},
+    "2": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
+    "3": {"field_order": ["1"], "message_typedef": {"1": {"field_order": ["19"], "message_typedef": {"19": {"message_typedef": {}, "type": "message"}}, "type": "message"}}, "type": "message"},
+}
