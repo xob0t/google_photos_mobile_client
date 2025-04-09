@@ -2150,3 +2150,22 @@ GET_DOWNLOAD_URLS = {
         "type": "message",
     },
 }
+
+
+RESTORE_FROM_TRASH = {
+    "2": {"type": "int"},
+    "3": {"type": "string"},
+    "4": {"type": "int"},
+    "8": {
+        "field_order": ["4"],
+        "message_typedef": {
+            "4": {
+                "field_order": ["2", "3"],
+                "message_typedef": {"2": {"message_typedef": {}, "type": "message"}, "3": {"field_order": ["1"], "message_typedef": {"1": {"message_typedef": {}, "type": "message"}}, "type": "message"}},
+                "type": "message",
+            }
+        },
+        "type": "message",
+    },
+    "9": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"type": "string"}}, "type": "message"}}, "type": "message"},
+}

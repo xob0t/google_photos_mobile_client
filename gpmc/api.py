@@ -1180,3 +1180,42 @@ class Api:
 
         decoded_message, _ = decode_message(response.content)
         return decoded_message
+
+    def restore_from_trash(self, dedup_keys: Sequence[str]) -> dict:
+        """Restore items from trash.
+
+        Returns:
+            dict: Decoded api response.
+        """
+        headers = {
+            "accept-encoding": "gzip",
+            "Accept-Language": self.language,
+            "content-type": "application/x-protobuf",
+            "User-Agent": self.user_agent,
+            "Authorization": f"Bearer {self.bearer_token}",
+            "x-goog-ext-173412678-bin": "CgcIAhClARgC",
+            "x-goog-ext-174067345-bin": "CgIIAg==",
+        }
+
+        proto_body = {
+            "2": 3,
+            "3": dedup_keys,
+            "4": 2,
+            "8": {"4": {"2": {}, "3": {"1": {}}}},
+            "9": {"1": 5, "2": {"1": self.client_verion_code, "2": str(self.android_api_version)}},
+        }
+
+        serialized_data = encode_message(proto_body, message_types.RESTORE_FROM_TRASH)  # type: ignore
+
+        with self._new_session() as session:
+            response = session.post(
+                "https://photosdata-pa.googleapis.com/6439526531001121323/17490284929287180316",
+                headers=headers,
+                data=serialized_data,
+                timeout=self.timeout,
+            )
+
+        response.raise_for_status()
+
+        decoded_message, _ = decode_message(response.content)
+        return decoded_message
