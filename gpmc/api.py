@@ -1016,3 +1016,53 @@ class Api:
             )
 
         response.raise_for_status()
+
+    def get_thumbnail(
+        self,
+        media_key: str,
+        width: int | None = None,
+        height: int | None = None,
+        force_jpeg: bool = True,
+        content_version: int | None = None,
+        no_overlay: bool = True,
+    ) -> bytes:
+        """Get media item's thumbnail
+
+        Args:
+            media_key: The unique identifier key for the media item.
+            width: Optional; The desired width of the thumbnail in pixels.
+            height: Optional; The desired height of the thumbnail in pixels.
+            force_jpeg: If True, forces the response to be in JPEG format. Defaults to True.
+            content_version: Specifies content version. Without it thumbnails will represent the original, not edited content.
+            no_overlay: If True, removes overlay from the thumbnail, e.g. play symbol for videos. Defaults to True.
+
+        Returns:
+            bytes: Image bytes."""
+        headers = {
+            "authorization": f"Bearer {self.bearer_token}",
+            "user-agent": self.user_agent,
+            "accept-encoding": "gzip",
+        }
+
+        url = f"https://ap2.googleusercontent.com/gpa/{media_key}=k-sg"
+        if width:
+            url += f"-w{width}"
+        if height:
+            url += f"-h{height}"
+        if force_jpeg:
+            url += "-rj"
+        if content_version:
+            url += f"-iv{content_version}"
+        if no_overlay:
+            url += "-no"
+
+        with self._new_session() as session:
+            response = session.get(
+                url,
+                headers=headers,
+                timeout=self.timeout,
+            )
+
+        response.raise_for_status()
+
+        return response.content

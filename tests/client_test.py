@@ -11,6 +11,9 @@ class TestUpload(unittest.TestCase):
         self.directory_path = "C:/Users/admin/Pictures"
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
+    def test_get_thumbnail(self):
+        """Test get library data."""
+        self.client.api.get_thumbnail("AF1QipOD9PerDX6wrOoWHZKt0361PlyACUJrm8H4NHI", width=500)
 
     def test_cache_upate(self):
         """Test get library data."""
