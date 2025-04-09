@@ -27,7 +27,11 @@ class Api:
         """
         self.proxy = proxy
         self.timeout = timeout
-        self.user_agent = "com.google.android.apps.photos/49029607 (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)"
+        self.android_api_version = 28
+        self.model = "Pixel XL"
+        self.make = "Google"
+        self.client_verion_code = 49029607
+        self.user_agent = f"com.google.android.apps.photos/{self.client_verion_code} (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)"
         self.language = language
         self.auth_data = auth_data
         self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
@@ -197,7 +201,7 @@ class Api:
             upload_token Upload token from `get_upload_token()`.
 
         Returns:
-            dict: Decoded upload response.
+            dict: Decoded api response.
 
         Raises:
             requests.HTTPError: If the api request fails.
@@ -238,20 +242,20 @@ class Api:
         file_name: str,
         sha1_hash: bytes,
         quality: Literal["original", "saver"] = "original",
-        make: str = "Google",
-        model: str = "Pixel XL",
+        make: str | None = None,
+        model: str | None = None,
         upload_timestamp: int | None = None,
     ) -> str:
         """
-        COMMIT the upload by sending the complete message to the API.
+        Commit the upload by sending the complete message to the API.
 
         Args:
             upload_response_decoded: Decoded upload response.
             file_name: Name of the uploaded file.
             sha1_hash: SHA-1 hash of the file.
             quality: Quality setting for the upload. Defaults to "original".
-            make: Device manufacturer name. Defaults to "Google".
-            model: Device model name. Defaults to "Pixel XL".
+            make: Device manufacturer name. Overrides client's make.
+            model: Device model name. Overrides client's model.
 
         Returns:
             str: Media key of the uploaded file.
@@ -260,8 +264,12 @@ class Api:
             requests.HTTPError: If the api request fails.
         """
 
+        if make is None:
+            make = self.make
+        if model is None:
+            model = self.model
+
         quality_map = {"saver": 1, "original": 3}
-        android_api_version = 28
         upload_timestamp = upload_timestamp or int(time.time())
         unknown_int = 46000000
 
@@ -319,7 +327,7 @@ class Api:
                 "10": 1,
                 "17": 0,
             },
-            "2": {"3": model, "4": make, "5": android_api_version},
+            "2": {"3": model, "4": make, "5": self.android_api_version},
             "3": bytes([1, 3]),
         }
 
@@ -368,7 +376,7 @@ class Api:
             "3": dedup_keys,
             "4": 1,
             "8": {"4": {"2": {}, "3": {"1": {}}, "4": {}, "5": {"1": {}}}},
-            "9": {"1": 5, "2": {"1": 49029607, "2": "28"}},
+            "9": {"1": 5, "2": {"1": self.client_verion_code, "2": str(self.android_api_version)}},
         }
         serialized_data = encode_message(proto_body, message_types.MOVE_TO_TRASH)  # type: ignore
         headers = {
@@ -411,7 +419,7 @@ class Api:
             "4": [{"1": {"1": key}} for key in media_keys],
             "6": {},
             "7": {"1": 3},
-            "8": {"3": "Pixel XL", "4": "Google", "5": 28},
+            "8": {"3": self.model, "4": self.make, "5": self.android_api_version},
         }
 
         serialized_data = encode_message(proto_body, message_types.CREATE_ALBUM)  # type: ignore
@@ -445,7 +453,7 @@ class Api:
             media_keys: Media keys of the media items to be added to album.
 
         Returns:
-            dict: Api response message.
+            dict: Decoded api response.
 
         Raises:
             requests.HTTPError: If the api request fails.
@@ -455,7 +463,7 @@ class Api:
             "1": list(media_keys),
             "2": album_media_key,
             "5": {"1": 2},
-            "6": {"3": "Pixel XL", "4": "Google", "5": 28},
+            "6": {"3": self.model, "4": self.make, "5": self.android_api_version},
             "7": int(time.time()),
         }
         serialized_data = encode_message(proto_body, message_types.ADD_MEDIA_TO_ALBUM)  # type: ignore
@@ -488,7 +496,7 @@ class Api:
             state_token: Previously received state_token.
 
         Returns:
-            dict: Decoded state response.
+            dict: Decoded api response.
         """
         headers = {
             "accept-encoding": "gzip",
@@ -664,7 +672,7 @@ class Api:
         """Get library state page during init process
 
         Returns:
-            dict: Decoded state response.
+            dict: Decoded api response.
         """
         headers = {
             "accept-encoding": "gzip",
@@ -826,7 +834,7 @@ class Api:
         """Get library state page
 
         Returns:
-            dict: Decoded state response.
+            dict: Decoded api response.
         """
         headers = {
             "accept-encoding": "gzip",
@@ -988,11 +996,7 @@ class Api:
         return decoded_message
 
     def set_item_caption(self, dedup_key: str = "", caption: str = "") -> None:
-        """Set item's caption
-
-        Returns:
-            dict: Decoded state response.
-        """
+        """Set item's caption"""
         headers = {
             "accept-encoding": "gzip",
             "Accept-Language": self.language,
@@ -1071,7 +1075,7 @@ class Api:
         """Sets or removes the favorite status for a single item.
 
         Returns:
-            dict: Decoded state response.
+            dict: Decoded api response.
         """
         headers = {
             "accept-encoding": "gzip",
@@ -1106,7 +1110,7 @@ class Api:
         """Sets or removes the archived status for multiple items.
 
         Returns:
-            dict: Decoded state response.
+            dict: Decoded api response.
         """
         headers = {
             "accept-encoding": "gzip",
@@ -1144,7 +1148,7 @@ class Api:
         """Get item's download links.
 
         Returns:
-            dict: Decoded state response.
+            dict: Decoded api response.
 
         Note:
             output_dict["1"]["5"]["2"]["5"] - url for downloading the file with applied edits (if any)
