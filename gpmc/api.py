@@ -1139,3 +1139,40 @@ class Api:
 
         decoded_message, _ = decode_message(response.content)
         return decoded_message
+
+    def get_download_urls(self, media_key: str) -> dict:
+        """Get item's download links.
+
+        Returns:
+            dict: Decoded state response.
+
+        Note:
+            output_dict["1"]["5"]["2"]["5"] - url for downloading the file with applied edits (if any)
+            output_dict["1"]["5"]["2"]["6"] - url for downloading the original file
+        """
+        headers = {
+            "accept-encoding": "gzip",
+            "Accept-Language": self.language,
+            "content-type": "application/x-protobuf",
+            "User-Agent": self.user_agent,
+            "Authorization": f"Bearer {self.bearer_token}",
+            "x-goog-ext-173412678-bin": "CgcIAhClARgC",
+            "x-goog-ext-174067345-bin": "CgIIAg==",
+        }
+
+        proto_body = {"1": {"1": {"1": media_key}}, "2": {"1": {"7": {"2": {}}}, "5": {"2": {}, "3": {}, "5": {"1": {}, "3": 0}}}}
+
+        serialized_data = encode_message(proto_body, message_types.GET_DOWNLOAD_URLS)  # type: ignore
+
+        with self._new_session() as session:
+            response = session.post(
+                "https://photosdata-pa.googleapis.com/$rpc/social.frontend.photos.preparedownloaddata.v1.PhotosPrepareDownloadDataService/PhotosPrepareDownload",
+                headers=headers,
+                data=serialized_data,
+                timeout=self.timeout,
+            )
+
+        response.raise_for_status()
+
+        decoded_message, _ = decode_message(response.content)
+        return decoded_message

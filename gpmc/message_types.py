@@ -2130,3 +2130,23 @@ SET_FAVORITE = {
     "2": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
     "3": {"field_order": ["1"], "message_typedef": {"1": {"field_order": ["19"], "message_typedef": {"19": {"message_typedef": {}, "type": "message"}}, "type": "message"}}, "type": "message"},
 }
+
+GET_DOWNLOAD_URLS = {
+    "1": {"field_order": ["1"], "message_typedef": {"1": {"field_order": ["1"], "message_typedef": {"1": {"type": "string"}}, "type": "message"}}, "type": "message"},
+    "2": {
+        "field_order": ["1", "5"],
+        "message_typedef": {
+            "1": {"field_order": ["7"], "message_typedef": {"7": {"field_order": ["2"], "message_typedef": {"2": {"message_typedef": {}, "type": "message"}}, "type": "message"}}, "type": "message"},
+            "5": {
+                "field_order": ["2", "3", "5"],
+                "message_typedef": {
+                    "2": {"message_typedef": {}, "type": "message"},
+                    "3": {"message_typedef": {}, "type": "message"},
+                    "5": {"field_order": ["1", "3"], "message_typedef": {"1": {"message_typedef": {}, "type": "message"}, "3": {"type": "int"}}, "type": "message"},
+                },
+                "type": "message",
+            },
+        },
+        "type": "message",
+    },
+}

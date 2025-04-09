@@ -11,6 +11,11 @@ class TestUpload(unittest.TestCase):
         self.directory_path = "C:/Users/admin/Pictures"
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
+    def test_get_download_urls(self):
+        """Test get library data."""
+        output = self.client.api.get_download_urls("AF1QipOD9PerDX6wrOoWHZKt0361PlyACUJrm8H4NHI")
+        print(output)
+
     def test_set_archived(self):
         """Test get library data."""
         dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
