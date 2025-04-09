@@ -2123,6 +2123,8 @@ GET_LIB_PAGE = {
 
 SET_CAPTION = {"2": {"type": "string"}, "3": {"type": "string"}}
 
+SET_ARCHIVED = {"1": {"seen_repeated": True, "field_order": ["1", "2"], "message_typedef": {"1": {"type": "string"}, "2": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"}}, "type": "message"}, "3": {"type": "int"}}
+
 SET_FAVORITE = {
     "1": {"field_order": ["2"], "message_typedef": {"2": {"type": "string"}}, "type": "message"},
     "2": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
