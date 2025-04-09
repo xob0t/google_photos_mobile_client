@@ -31,6 +31,7 @@ class Storage:
             size_bytes INTEGER,
             quota_charged_bytes INTEGER,
             origin TEXT,
+            content_version INTEGER,
             utc_timestamp INTEGER,
             server_creation_timestamp INTEGER,
             timezone_offset INTEGER,

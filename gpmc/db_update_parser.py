@@ -35,6 +35,7 @@ def _parse_media_item(d: dict) -> MediaItem:
         upload_status=d["2"]["11"],
         quota_charged_bytes=d["2"]["35"]["2"],
         origin=origin_map[d["2"]["30"]["1"]],
+        content_version=d["2"]["26"],
         trash_timestamp=d["2"]["16"].get("3", 0),
         is_archived=d["2"]["29"]["1"] == 1,
         is_favorite=d["2"]["31"]["1"] == 1,

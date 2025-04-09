@@ -13,6 +13,7 @@ class MediaItem:
     size_bytes: int
     quota_charged_bytes: int
     origin: str
+    content_version: int
     utc_timestamp: int
     server_creation_timestamp: int
     timezone_offset: int | None = None
