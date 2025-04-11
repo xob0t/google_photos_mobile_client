@@ -247,7 +247,7 @@ class Api:
         upload_timestamp: int | None = None,
     ) -> str:
         """
-        Commit the upload by sending the complete message to the API.
+        Commit the upload.
 
         Args:
             upload_response_decoded: Decoded upload response.
@@ -671,6 +671,9 @@ class Api:
     def get_library_page_init(self, page_token: str = "") -> dict:
         """Get library state page during init process
 
+        Args:
+            page_token: Page token.
+
         Returns:
             dict: Decoded api response.
         """
@@ -832,6 +835,10 @@ class Api:
 
     def get_library_page(self, page_token: str = "", state_token: str = "") -> dict:
         """Get library state page
+
+        Args:
+            page_token: Page token.
+            state_token: State token.
 
         Returns:
             dict: Decoded api response.
@@ -996,7 +1003,13 @@ class Api:
         return decoded_message
 
     def set_item_caption(self, dedup_key: str = "", caption: str = "") -> None:
-        """Set item's caption"""
+        """Set item's caption
+
+        Args:
+            dedup_key: Target item's dedup key.
+            caption: New caption.
+        """
+
         headers = {
             "accept-encoding": "gzip",
             "Accept-Language": self.language,
@@ -1074,6 +1087,10 @@ class Api:
     def set_favorite(self, dedup_key: str, is_favorite: bool) -> dict:
         """Sets or removes the favorite status for a single item.
 
+        Args:
+            dedup_key: Target item's dedup key.
+            is_favorite: Whether to mark the item as favorite (True) or remove favorite status (False).
+
         Returns:
             dict: Decoded api response.
         """
@@ -1108,6 +1125,10 @@ class Api:
 
     def set_archived(self, dedup_keys: Sequence[str], is_archived: bool) -> dict:
         """Sets or removes the archived status for multiple items.
+
+        Args:
+            dedup_keys: Sequence of target items' dedup keys.
+            is_archived: Whether to mark the item as archived (True) or remove archived status (False).
 
         Returns:
             dict: Decoded api response.
@@ -1147,6 +1168,9 @@ class Api:
     def get_download_urls(self, media_key: str) -> dict:
         """Get item's download links.
 
+        Args:
+            media_key: Target item's media key.
+
         Returns:
             dict: Decoded api response.
 
@@ -1183,6 +1207,9 @@ class Api:
 
     def restore_from_trash(self, dedup_keys: Sequence[str]) -> dict:
         """Restore items from trash.
+
+        Args:
+            dedup_keys: Sequence of target items' dedup keys.
 
         Returns:
             dict: Decoded api response.
