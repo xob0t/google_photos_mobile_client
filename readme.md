@@ -52,11 +52,11 @@ print(output)
 ### CLI
 
 ```bash
-gpmc "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c75&app=com.google.android.app..."
+gpmc "/path/to/media_file.jpg" --progress --auth-data "androidId=216e583113f43c75&app=com.google.android.app..."
 ```
 
 ```text
-usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path] path
+usage: gpmc [-h] [--auth-data AUTH_DATA] [--album ALBUM] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path] path
 
 Google Photos mobile client.
 
@@ -65,7 +65,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --auth_data AUTH_DATA
+  --auth-data AUTH_DATA
                         Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
   --album ALBUM         Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.
                         Example for using 'AUTO':
