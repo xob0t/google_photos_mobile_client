@@ -22,7 +22,7 @@ def calculate_sha1_hash(file_path: Path, progress: Progress, file_progress_id: T
     hash_sha1 = hashlib.sha1()
 
     with progress.open(file_path, "rb", task_id=file_progress_id) as file:
-        for chunk in iter(lambda: file.read(4096), b""):
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
             hash_sha1.update(chunk)
 
     hash_bytes = hash_sha1.digest()

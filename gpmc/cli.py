@@ -2,7 +2,7 @@ import argparse
 from pprint import pp
 
 from .client import Client
-from .api_methods import DEFAULT_TIMEOUT
+from .api import DEFAULT_TIMEOUT
 
 
 def main():
@@ -21,6 +21,7 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
+    parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@host:port`")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
     parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
@@ -43,7 +44,12 @@ def main():
     if (args.exclude or args.regex or args.ignore_case or args.match_path) and not args.filter:
         parser.error("--filter is required when using any of --exclude, --regex, --ignore-case, or --match-path")
 
-    client = Client(auth_data=args.auth_data, timeout=args.timeout, log_level=args.log_level)
+    client = Client(
+        auth_data=args.auth_data,
+        timeout=args.timeout,
+        log_level=args.log_level,
+        proxy=args.proxy,
+    )
     output = client.upload(
         target=args.path,
         album_name=args.album,

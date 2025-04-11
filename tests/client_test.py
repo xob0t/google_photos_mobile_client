@@ -1,6 +1,6 @@
 import unittest
-
-from gpmc import Client
+from pathlib import Path
+from gpmc import Client, utils
 
 
 class TestUpload(unittest.TestCase):
@@ -11,6 +11,39 @@ class TestUpload(unittest.TestCase):
         self.directory_path = "C:/Users/admin/Pictures"
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
+    def test_restore_from_trash(self):
+        """Test restore from trash."""
+        dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
+        output = self.client.api.restore_from_trash([dedup_key])
+        print(output)
+
+    def test_get_download_urls(self):
+        """Test get library data."""
+        output = self.client.api.get_download_urls("AF1QipOD9PerDX6wrOoWHZKt0361PlyACUJrm8H4NHI")
+        print(output)
+
+    def test_set_archived(self):
+        """Test get library data."""
+        dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
+        self.client.api.set_archived([dedup_key], is_archived=False)
+
+    def test_set_favorite(self):
+        """Test get library data."""
+        dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
+        self.client.api.set_favorite(dedup_key, is_favorite=False)
+
+    def test_get_thumbnail(self):
+        """Test get library data."""
+        self.client.api.get_thumbnail("AF1QipOD9PerDX6wrOoWHZKt0361PlyACUJrm8H4NHI", width=500)
+
+    def test_cache_upate(self):
+        """Test get library data."""
+        self.client.update_cache()
+
+    def test_set_caption(self):
+        """Test filter."""
+        dedup_key = utils.urlsafe_base64(self.image_sha1_hash_b64)
+        self.client.api.set_item_caption(dedup_key=dedup_key, caption="foobar")
 
     def test_filter(self):
         """Test filter."""
@@ -42,9 +75,9 @@ class TestUpload(unittest.TestCase):
         print(media_key)
 
     def test_image_upload_with_hash(self):
-        """Test media upload with known hash.
-        If hash is already known, it can be passed to avoid calculating it again."""
-        media_key = self.client.upload(target=self.image_file_path, sha1_hash=self.image_sha1_hash_b64, force_upload=True, show_progress=True)
+        """Test media upload with precalculated hash."""
+        hash_pair = {Path(self.image_file_path): self.image_sha1_hash_b64}
+        media_key = self.client.upload(target=hash_pair, force_upload=True, show_progress=True)
         print(media_key)
 
     def test_mkv_upload(self):

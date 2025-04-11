@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=65.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["gpmc"]
+
+[project]
+name = "gpmc"
+version = "0.5.1"
+description = "Google Photos client based on reverse engineered mobile API."
+authors = [{ name = "xob0t" }]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+keywords = [
+    "google photos",
+    "uploader",
+    "cli",
+    "unlimited",
+    "backup",
+    "unofficial",
+]
+dependencies = ["bbpb>=1.4.2", "requests>=2.32", "rich>=13.9.0"]
+
+[project.urls]
+Homepage = "https://github.com/xob0t/google_photos_mobile_client"
+
+[project.scripts]
+gpmc = "gpmc.cli:main"
