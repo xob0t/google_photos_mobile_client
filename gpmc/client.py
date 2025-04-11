@@ -38,7 +38,7 @@ LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 class Client:
     """Google Photos client based on reverse engineered mobile API."""
 
-    def __init__(self, auth_data: str = "", proxy: str = "", language: str = "en_US", timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
+    def __init__(self, auth_data: str = "", proxy: str = "", language: str = "", timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
         """
         Google Photos client based on reverse engineered mobile API.
 
@@ -46,7 +46,7 @@ class Client:
             auth_data: Google authentication data string. If not provided, will attempt to use
                       the `GP_AUTH_DATA` environment variable.
             proxy: Proxy url `protocol://username:password@ip:port`.
-            language: Accept-Language header value.
+            language: Accept-Language header value. If not provided, will attempt to parse from auth_data. Fallback value is `en_US`.
             log_level: Logging level to use. Must be one of "INFO", "DEBUG", "WARNING",
                       "ERROR", or "CRITICAL". Defaults to "INFO".
             timeout: Requests timeout, seconds. Defaults to DEFAULT_TIMEOUT.
@@ -59,7 +59,7 @@ class Client:
         self.valid_mimetypes = ["image/", "video/"]
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
-        self.language = language or utils.parse_language(self.auth_data)
+        self.language = language or utils.parse_language(self.auth_data) or "en_US"
         email = utils.parse_email(self.auth_data)
         self.logger.info(f"User: {email}")
         self.logger.info(f"Language: {self.language}")

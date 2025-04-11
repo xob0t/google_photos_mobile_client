@@ -57,7 +57,7 @@ def parse_email(s: str) -> str:
 
 
 def parse_language(s: str) -> str:
-    """Parse language from auth_data"""
+    """Safely parse language from auth_data"""
     for line in s.split("&"):
         if "lang" in line:
             return line.split("=")[1]
