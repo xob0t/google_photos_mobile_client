@@ -21,6 +21,7 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
+    parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@host:port`")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--recursive", action="store_true", help="Scan the directory recursively.")
     parser.add_argument("--threads", type=int, default=1, help="Number of threads to run uploads with. Defaults to 1.")
@@ -47,6 +48,7 @@ def main():
         auth_data=args.auth_data,
         timeout=args.timeout,
         log_level=args.log_level,
+        proxy=args.proxy,
     )
     output = client.upload(
         target=args.path,
