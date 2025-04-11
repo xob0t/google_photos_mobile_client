@@ -64,9 +64,8 @@ class Client:
         self.logger.info(f"User: {email}")
         self.logger.info(f"Language: {self.language}")
         self.api = Api(self.auth_data, proxy=proxy, language=self.language, timeout=timeout)
-        gpmc_dir = Path.home() / ".gpmc" / email
-        gpmc_dir.mkdir(parents=True, exist_ok=True)
-        self.db_path = gpmc_dir / "storage.db"
+        self.cache_dir = Path.home() / ".gpmc" / email
+        self.db_path = self.cache_dir / "storage.db"
 
     def _handle_auth_data(self, auth_data: str | None) -> str:
         """
@@ -581,6 +580,7 @@ class Client:
         Args:
             show_progress: Whether to display progress in console.
         """
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         progress = Progress(
             TextColumn("{task.description}"),
             SpinnerColumn(),
