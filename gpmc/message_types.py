@@ -2169,3 +2169,7 @@ RESTORE_FROM_TRASH = {
     },
     "9": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"field_order": ["1", "2"], "message_typedef": {"1": {"type": "int"}, "2": {"type": "string"}}, "type": "message"}}, "type": "message"},
 }
+
+LIB_STATE_RESPONSE_FIX = {
+    "1": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"4": {"type": "string"}}}}}}},
+}

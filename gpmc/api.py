@@ -665,7 +665,7 @@ class Api:
 
         response.raise_for_status()
 
-        decoded_message, _ = decode_message(response.content)
+        decoded_message, _ = decode_message(response.content, message_type=message_types.LIB_STATE_RESPONSE_FIX)  # type: ignore
         return decoded_message
 
     def get_library_page_init(self, page_token: str = "") -> dict:
@@ -827,7 +827,7 @@ class Api:
 
         response.raise_for_status()
 
-        decoded_message, _ = decode_message(response.content)
+        decoded_message, _ = decode_message(response.content, message_type=message_types.LIB_STATE_RESPONSE_FIX)  # type: ignore
         return decoded_message
 
     def get_library_page(self, page_token: str = "", state_token: str = "") -> dict:
@@ -992,7 +992,7 @@ class Api:
 
         response.raise_for_status()
 
-        decoded_message, _ = decode_message(response.content)
+        decoded_message, _ = decode_message(response.content, message_type=message_types.LIB_STATE_RESPONSE_FIX)  # type: ignore
         return decoded_message
 
     def set_item_caption(self, dedup_key: str = "", caption: str = "") -> None:
