@@ -1042,6 +1042,7 @@ class Api:
         force_jpeg: bool = True,
         content_version: int | None = None,
         no_overlay: bool = True,
+        crop: bool = False,
     ) -> bytes:
         """Get media item's thumbnail
 
@@ -1052,6 +1053,7 @@ class Api:
             force_jpeg: If True, forces the response to be in JPEG format. Defaults to True.
             content_version: Specifies content version. Without it thumbnails will represent the original, not edited content.
             no_overlay: If True, removes overlay from the thumbnail, e.g. play symbol for videos. Defaults to True.
+            crop: If True, crop the thumbnail. Defaults to False.
 
         Returns:
             bytes: Image bytes."""
@@ -1072,6 +1074,8 @@ class Api:
             url += f"-iv{content_version}"
         if no_overlay:
             url += "-no"
+        if crop:
+            url += "-c"
 
         with self._new_session() as session:
             response = session.get(
