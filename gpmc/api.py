@@ -1250,3 +1250,37 @@ class Api:
 
         decoded_message, _ = decode_message(response.content)
         return decoded_message
+
+    def get_stream_manifest(self, media_key: str, protocol: Literal["hls", "dash"] = "hls", content_version: int | None = None) -> str:
+        """
+        Fetch the streaming manifest for a given media key.
+
+        Args:
+            media_key: Target video item's media key.
+            protocol: The streaming protocol format to request. Must be either
+                'hls' or 'dash'. Defaults to 'hls' if not specified.
+            content_version: Specifies content version. Without it manifest will represent the original, not edited content.
+
+        Returns:
+            str: The streaming manifest content.
+        """
+        headers = {
+            "accept-encoding": "gzip",
+            "User-Agent": self.user_agent,
+            "Authorization": f"Bearer {self.bearer_token}",
+        }
+
+        url = f"https://lh3.googleusercontent.com/p/{media_key}%3Dmm%2C{protocol}-vm"
+
+        if content_version:
+            url += f"-iv{content_version}"
+
+        with self._new_session() as session:
+            response = session.post(
+                url,
+                headers=headers,
+                timeout=self.timeout,
+            )
+
+        response.raise_for_status()
+        return response.text
