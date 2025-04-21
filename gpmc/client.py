@@ -38,7 +38,15 @@ LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 class Client:
     """Google Photos client based on reverse engineered mobile API."""
 
-    def __init__(self, auth_data: str = "", proxy: str = "", language: str = "", timeout: int = DEFAULT_TIMEOUT, log_level: LogLevel = "INFO") -> None:
+    def __init__(
+        self,
+        auth_data: str = "",
+        proxy: str = "",
+        language: str = "",
+        timeout: int = DEFAULT_TIMEOUT,
+        log_level: LogLevel = "INFO",
+        custom_progress: Progress | None = None,
+    ) -> None:
         """
         Google Photos client based on reverse engineered mobile API.
 
@@ -50,6 +58,7 @@ class Client:
             log_level: Logging level to use. Must be one of "INFO", "DEBUG", "WARNING",
                       "ERROR", or "CRITICAL". Defaults to "INFO".
             timeout: Requests timeout, seconds. Defaults to DEFAULT_TIMEOUT.
+            custom_progress: rich.Progress instance for external progress tracking.
 
         Raises:
             ValueError: If no auth_data is provided and GP_AUTH_DATA environment variable is not set.
@@ -66,6 +75,7 @@ class Client:
         self.api = Api(self.auth_data, proxy=proxy, language=self.language, timeout=timeout)
         self.cache_dir = Path.home() / ".gpmc" / email
         self.db_path = self.cache_dir / "storage.db"
+        self.custom_progress = custom_progress
 
     def _handle_auth_data(self, auth_data: str | None) -> str:
         """
@@ -445,14 +455,14 @@ class Client:
             Failed uploads are logged but don't stop the overall process.
         """
         uploaded_files = {}
-        overall_progress = Progress(
+        overall_progress = self.custom_progress or Progress(
             TextColumn("[bold yellow]Files processed:"),
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
             TextColumn("{task.description}"),
         )
-        file_progress = Progress(
+        file_progress = self.custom_progress or Progress(
             DownloadColumn(),
             TaskProgressColumn(),
             TimeRemainingColumn(),
@@ -544,7 +554,7 @@ class Client:
             self.logger.warning(f"{len(media_keys)} items exceed the album limit of {album_limit}. They will be split into multiple albums.")
 
         # Initialize progress bar
-        progress = Progress(
+        progress = self.custom_progress or Progress(
             TextColumn("{task.description}"),
             SpinnerColumn(),
             MofNCompleteColumn(),
@@ -581,7 +591,7 @@ class Client:
             show_progress: Whether to display progress in console.
         """
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        progress = Progress(
+        progress = self.custom_progress or Progress(
             TextColumn("{task.description}"),
             SpinnerColumn(),
             "Updates: [green]{task.fields[updated]:>8}[/green]",
