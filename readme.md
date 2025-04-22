@@ -105,6 +105,11 @@ You only need to do it once.
     ```text
     contains(https://www.googleapis.com/auth/photos.native)
     ```
+    or
+    ```text
+    contains(www.googleapis.com%2Fauth%2Fplus.photos.readwrite)
+    ```
+
 
 5. Open Google Photos app and login with your account.
 6. There should be a single request found.  
