@@ -94,8 +94,38 @@ File Filter Options:
 
 ## auth_data? Where Do I Get Mine?
 
-Below is a step by step instruction on how to accuire your Google account's mobile auth data in a simplest way possible.  
-You only need to do it once.
+You only need to do this once.
+
+### Option 1 - Revanced. No root required
+
+1. Install Google Photos Revanced on your device.
+    - Install GmsCore [https://github.com/ReVanced/GmsCore/releases](https://github.com/ReVanced/GmsCore/releases)
+    - Install patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases) or patch it yourself
+2. Connect the device to your PC via ADB.
+3. Open terminal and execute
+
+    Windows
+
+    ```cmd
+    adb logcat | FINDSTR "auth%2Fphotos.native"
+    ```
+
+    Linux/Mac
+
+    ```shell
+    adb logcat | grep "auth%2Fphotos.native"
+    ```
+
+4. If you are already using Revanced - remove Google Account from GmsCore.
+5. Open Google Photos Revanced on your device and log into your account.
+6. One or more identical GmsCore logs should appear in the terminal.
+7. Copy text from `androidId=` to the end of the line from any log.
+8. That is it! 🎉
+
+### Option 2 - Offical apk. Root required
+
+<details>
+  <summary><strong>Click to expand</strong></summary>
 
 1. Get a rooted android device or an emulator. Recommended Android versions 9-13
 2. Connect the device to your PC via ADB.
@@ -105,11 +135,12 @@ You only need to do it once.
     ```text
     contains(https://www.googleapis.com/auth/photos.native)
     ```
-    or
+
+    Or if you have an older version of Google Photos, try
+
     ```text
     contains(www.googleapis.com%2Fauth%2Fplus.photos.readwrite)
     ```
-
 
 5. Open Google Photos app and login with your account.
 6. There should be a single request found.  
@@ -124,9 +155,7 @@ You only need to do it once.
   2. Log in again.
   3. Try `Android App via Frida` interception method in HTTP Toolkit.
 
-- __403 Response Status__  
-  - Try intercepting Google Photos ReVanced. Patch it yourself or use a patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases)  
-    It uses an alternative to google services, and the format of the auth request is a bit different.
+</details>
 
 ## My Other Google Photos Scripts And Tools
 
