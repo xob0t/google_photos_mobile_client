@@ -56,7 +56,9 @@ gpmc "/path/to/media_file.jpg" --progress --auth-data "androidId=216e583113f43c7
 ```
 
 ```text
-usage: gpmc [-h] [--auth-data AUTH_DATA] [--album ALBUM] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path] path
+usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--proxy PROXY] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT]
+            [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path]
+            path
 
 Google Photos mobile client.
 
@@ -65,7 +67,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --auth-data AUTH_DATA
+  --auth_data AUTH_DATA
                         Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
   --album ALBUM         Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.
                         Example for using 'AUTO':
@@ -73,6 +75,7 @@ options:
                         '/foo/image1.jpg' goes to 'foo'
                         '/foo/bar/image2.jpg' goes to 'bar'
                         '/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)
+  --proxy PROXY         Proxy to use. Format: `protocol://username:password@host:port`
   --progress            Display upload progress.
   --recursive           Scan the directory recursively.
   --threads THREADS     Number of threads to run uploads with. Defaults to 1.
@@ -80,7 +83,7 @@ options:
   --delete-from-host    Delete uploaded files from source path.
   --use-quota           Uploaded files will count against your Google Photos storage quota.
   --saver               Upload files in storage saver quality.
-  --timeout TIMEOUT     Requests timeout, seconds. Defaults to 30.
+  --timeout TIMEOUT     Requests timeout, seconds. Defaults to 60.
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the logging level (default: INFO)
 
@@ -96,13 +99,13 @@ File Filter Options:
 
 You only need to do this once.
 
-### Option 1 - Revanced. No root required
+### Option 1 - ReVanced. No root required
 
-1. Install Google Photos Revanced on your device.
+1. Install Google Photos ReVanced on your device.
     - Install GmsCore [https://github.com/ReVanced/GmsCore/releases](https://github.com/ReVanced/GmsCore/releases)
     - Install patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases) or patch it yourself
 2. Connect the device to your PC via ADB.
-3. Open terminal and execute
+3. Open the terminal on your PC and execute
 
     Windows
 
@@ -116,13 +119,13 @@ You only need to do this once.
     adb logcat | grep "auth%2Fphotos.native"
     ```
 
-4. If you are already using Revanced - remove Google Account from GmsCore.
-5. Open Google Photos Revanced on your device and log into your account.
+4. If you are already using ReVanced - remove Google Account from GmsCore.
+5. Open Google Photos ReVanced on your device and log into your account.
 6. One or more identical GmsCore logs should appear in the terminal.
 7. Copy text from `androidId=` to the end of the line from any log.
-8. That is it! 🎉
+8. That's it! 🎉
 
-### Option 2 - Offical apk. Root required
+### Option 2 - Official apk. Root required
 
 <details>
   <summary><strong>Click to expand</strong></summary>
@@ -143,15 +146,15 @@ You only need to do this once.
     ```
 
 5. Open Google Photos app and login with your account.
-6. There should be a single request found.  
+6. A single request should appear.  
    Copy request body as text.  
    ![http_toolkit_tip](media/image.png)
 7. Now you've got yourself your auth_data! 🎉
 
-## Troubleshooting
+#### Troubleshooting
 
 - __No Auth Request Intercepted__  
-  1. Log out of your Goolge account.
+  1. Log out of your Google account.
   2. Log in again.
   3. Try `Android App via Frida` interception method in HTTP Toolkit.
 
