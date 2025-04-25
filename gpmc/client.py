@@ -472,12 +472,12 @@ class Client:
             with ThreadPoolExecutor(max_workers=threads) as executor:
                 futures = {executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): (path, hash_value) for path, hash_value in path_hash_pairs.items()}
                 for future in as_completed(futures):
-                    file = futures[future]
+                    target = futures[future]
                     try:
                         media_key_dict = future.result()
                         uploaded_files = uploaded_files | media_key_dict
                     except Exception as e:
-                        self.logger.error(f"Error uploading file {file}: {e}")
+                        self.logger.error(f"Error uploading file {target[0]}: {e}")
                         upload_error_count += 1
                         overall_progress.update(task_id=overall_task_id, description=f"[bold red] Errors: {upload_error_count}")
                     finally:
