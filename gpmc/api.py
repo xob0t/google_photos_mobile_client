@@ -1,6 +1,6 @@
 from typing import Any, IO, Generator, Literal, Sequence
 import time
-from urllib.parse import parse_qs
+from urllib.parse import parse_qsl
 from pathlib import Path
 
 import requests
@@ -33,7 +33,7 @@ class Api:
         self.client_verion_code = 49029607
         self.user_agent = f"com.google.android.apps.photos/{self.client_verion_code} (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)"
         self.language = language
-        self.auth_data = auth_data
+        self.auth_data = auth_data.strip()
         self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
 
     @property
@@ -71,7 +71,7 @@ class Api:
         Raises:
             requests.HTTPError: If the api request fails.
         """
-        auth_data_dict = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(self.auth_data).items()}
+        auth_data_dict = dict(parse_qsl(self.auth_data))
 
         # this dict has a purpose, just sending `auth_data_dict` can result in auth request that returns encrypted token
         # building it manually should prevent this
