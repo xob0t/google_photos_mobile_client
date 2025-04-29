@@ -52,7 +52,7 @@ print(output)
 ### CLI
 
 ```bash
-gpmc "/path/to/media_file.jpg" --progress --auth-data "androidId=216e583113f43c75&app=com.google.android.app..."
+gpmc "/path/to/media_file.jpg" --progress --auth_data "androidId=216e583113f43c75&app=com.google.android.app..."
 ```
 
 ```text
