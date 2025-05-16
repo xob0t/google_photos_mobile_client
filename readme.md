@@ -18,6 +18,8 @@ Google Photos client based on reverse engineered mobile API.
 - Real-time progress tracking.
 - Configurable threads for faster uploads (default: 1).
 
+### If you'd prefer a GUI client, use [https://github.com/xob0t/gotohp](https://github.com/xob0t/gotohp)
+
 ## Installation
 
 Run the command:
