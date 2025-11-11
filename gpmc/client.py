@@ -89,7 +89,7 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, hash_value: bytes | str, progress: Progress, force_upload: bool, use_quota: bool, saver: bool) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, hash_value: bytes | str, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool = False) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -101,6 +101,7 @@ class Client:
             force_upload: Whether to upload the file even if it's already present in Google Photos.
             use_quota: Uploaded files will count against your Google Photos storage quota.
             saver: Upload files in storage saver quality.
+            delete_from_host: Whether to delete the file from host immediately after successful upload.
 
         Returns:
             dict[str, str]: A dictionary mapping the absolute file path to its Google Photos media key.
@@ -147,6 +148,12 @@ class Client:
                 model=model,
                 quality=quality,
             )
+
+            # Delete file immediately after successful upload if requested
+            if delete_from_host:
+                self.logger.info(f"{file_path} deleting from host")
+                os.remove(file_path)
+
             return {file_path.absolute().as_posix(): media_key}
         finally:
             progress.update(file_progress_id, visible=False)
@@ -270,7 +277,7 @@ class Client:
             threads: Number of concurrent upload threads for multiple files. Defaults to 1.
             force_upload: Whether to upload files even if they're already present in
                                 Google Photos (based on hash). Defaults to False.
-            delete_from_host: Whether to delete the file from the host after successful upload.
+            delete_from_host: Whether to delete each file immediately after its individual upload completes.
                                     Defaults to False.
             filter_exp: The filter expression to match against filenames or paths.
             filter_exclude: If True, exclude files matching the filter.
@@ -306,15 +313,12 @@ class Client:
             force_upload=force_upload,
             use_quota=use_quota,
             saver=saver,
+            delete_from_host=delete_from_host,
         )
 
         if album_name:
             self._handle_album_creation(results, album_name, show_progress)
 
-        if delete_from_host:
-            for file_path, _ in results.items():
-                self.logger.info(f"{file_path} deleting from host")
-                os.remove(file_path)
         return results
 
     def _handle_target_input(
@@ -426,7 +430,7 @@ class Client:
         finally:
             progress.update(hash_calc_progress_id, visible=False)
 
-    def _upload_concurrently(self, path_hash_pairs: Mapping[Path, bytes | str], threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool) -> dict[str, str]:
+    def _upload_concurrently(self, path_hash_pairs: Mapping[Path, bytes | str], threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool) -> dict[str, str]:
         """
         Upload files concurrently to Google Photos.
 
@@ -437,6 +441,7 @@ class Client:
             force_upload: Upload even if file exists in Google Photos.
             use_quota: Count uploads against storage quota.
             saver: Upload in storage saver quality.
+            delete_from_host: Delete each file immediately after successful upload.
 
         Returns:
             dict[str, str]: Dictionary mapping file paths to media keys.
@@ -470,7 +475,7 @@ class Client:
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(path_hash_pairs.keys()), visible=show_progress)
         with context:
             with ThreadPoolExecutor(max_workers=threads) as executor:
-                futures = {executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): (path, hash_value) for path, hash_value in path_hash_pairs.items()}
+                futures = {executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver, delete_from_host=delete_from_host): (path, hash_value) for path, hash_value in path_hash_pairs.items()}
                 for future in as_completed(futures):
                     file = futures[future]
                     try:
