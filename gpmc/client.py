@@ -27,6 +27,7 @@ from .api import Api, DEFAULT_TIMEOUT
 from . import utils
 from .hash_handler import calculate_sha1_hash, convert_sha1_hash
 from .db_update_parser import parse_db_update
+from .exceptions import ProtobufDecodeError, ProtobufEncodeError
 
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -476,8 +477,13 @@ class Client:
                     try:
                         media_key_dict = future.result()
                         uploaded_files = uploaded_files | media_key_dict
+                    except (ProtobufDecodeError, ProtobufEncodeError) as e:
+                        self.logger.error(f"Protobuf error uploading file {file[0]}: {e}")
+                        self.logger.info(f"Skipping {file[0]} due to protobuf encoding/decoding issue")
+                        upload_error_count += 1
+                        overall_progress.update(task_id=overall_task_id, description=f"[bold red] Errors: {upload_error_count}")
                     except Exception as e:
-                        self.logger.error(f"Error uploading file {file}: {e}")
+                        self.logger.error(f"Error uploading file {file[0]}: {e}")
                         upload_error_count += 1
                         overall_progress.update(task_id=overall_task_id, description=f"[bold red] Errors: {upload_error_count}")
                     finally:
@@ -562,13 +568,18 @@ class Client:
                 current_album_key = None
                 for j in range(0, len(album_batch), batch_size):
                     batch = album_batch[j : j + batch_size]
-                    if current_album_key is None:
-                        # Create the album with the first batch
-                        current_album_key = self.api.create_album(album_name=current_album_name, media_keys=batch)
-                        album_keys.append(current_album_key)
-                    else:
-                        # Add to the existing album
-                        self.api.add_media_to_album(album_media_key=current_album_key, media_keys=batch)
+                    try:
+                        if current_album_key is None:
+                            # Create the album with the first batch
+                            current_album_key = self.api.create_album(album_name=current_album_name, media_keys=batch)
+                            album_keys.append(current_album_key)
+                        else:
+                            # Add to the existing album
+                            self.api.add_media_to_album(album_media_key=current_album_key, media_keys=batch)
+                    except (ProtobufDecodeError, ProtobufEncodeError) as e:
+                        self.logger.error(f"Protobuf error while adding items to album '{current_album_name}': {e}")
+                        self.logger.info(f"Batch of {len(batch)} items skipped. Media keys (first 3): {batch[:3]}")
+                        raise
                     progress.update(task, advance=len(batch))
                 album_counter += 1
         return album_keys
