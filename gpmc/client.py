@@ -57,6 +57,7 @@ class Client:
         """
         self.logger = utils.create_logger(log_level)
         self.valid_mimetypes = ["image/", "video/"]
+        self._add_raw_mimetypes()
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
         self.language = language or utils.parse_language(self.auth_data) or "en_US"
@@ -150,6 +151,34 @@ class Client:
             return {file_path.absolute().as_posix(): media_key}
         finally:
             progress.update(file_progress_id, visible=False)
+
+    @staticmethod
+    def _add_raw_mimetypes() -> None:
+        """
+        Extends Python mimetype library with RAW photo file extensions.
+        """
+        raw_mime_types = {
+            '.arw': 'image/x-sony-arw',
+            '.cr2': 'image/x-canon-cr2', 
+            '.crw': 'image/x-canon-crw',
+            '.dcr': 'image/x-kodak-dcr',
+            # '.dng': 'image/x-adobe-dng', # two of my test dng files were rejected by Google Photos API
+            '.erf': 'image/x-epson-erf',
+            '.k25': 'image/x-kodak-k25',
+            '.kdc': 'image/x-kodak-kdc',
+            '.mrw': 'image/x-minolta-mrw',
+            '.nef': 'image/x-nikon-nef',
+            '.orf': 'image/x-olympus-orf',
+            '.pef': 'image/x-pentax-pef',
+            '.raf': 'image/x-fuji-raf',
+            '.raw': 'image/x-panasonic-raw',
+            '.sr2': 'image/x-sony-sr2',
+            '.srf': 'image/x-sony-srf',
+            '.x3f': 'image/x-sigma-x3f',
+        }
+
+        for extension, mime_type in raw_mime_types.items():
+            mimetypes.add_type(mime_type, extension)
 
     def get_media_key_by_hash(self, sha1_hash: bytes | str) -> str | None:
         """
