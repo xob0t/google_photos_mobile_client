@@ -90,7 +90,17 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, hash_value: bytes | str, progress: Progress, force_upload: bool, use_quota: bool, saver: bool) -> dict[str, str]:
+    def _upload_file(
+        self,
+        file_path: str | Path,
+        hash_value: bytes | str,
+        progress: Progress,
+        force_upload: bool,
+        use_quota: bool,
+        saver: bool,
+        delete_from_host: bool = False,
+        sleep_interval: float = 0,
+    ) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -102,6 +112,8 @@ class Client:
             force_upload: Whether to upload the file even if it's already present in Google Photos.
             use_quota: Uploaded files will count against your Google Photos storage quota.
             saver: Upload files in storage saver quality.
+            delete_from_host: Whether to delete the file from the local host after a successful upload.
+            sleep_interval: Seconds to sleep after a successful upload. Useful to avoid rate-limiting.
 
         Returns:
             dict[str, str]: A dictionary mapping the absolute file path to its Google Photos media key.
@@ -111,6 +123,7 @@ class Client:
             IOError: If there are issues reading the file.
             ValueError: If the file is empty or cannot be processed.
         """
+        import time as _time
 
         file_path = Path(file_path)
         file_size = file_path.stat().st_size
@@ -148,7 +161,17 @@ class Client:
                 model=model,
                 quality=quality,
             )
-            return {file_path.absolute().as_posix(): media_key}
+            result = {file_path.absolute().as_posix(): media_key}
+
+            # Delete from host immediately after successful upload (issue #39)
+            if delete_from_host:
+                self.logger.info(f"{file_path} deleting from host")
+                os.remove(file_path)
+
+            if sleep_interval > 0:
+                _time.sleep(sleep_interval)
+
+            return result
         finally:
             progress.update(file_progress_id, visible=False)
 
@@ -269,6 +292,7 @@ class Client:
         threads: int = 1,
         force_upload: bool = False,
         delete_from_host: bool = False,
+        sleep_interval: float = 0,
         filter_exp: str = "",
         filter_exclude: bool = False,
         filter_regex: bool = False,
@@ -299,8 +323,10 @@ class Client:
             threads: Number of concurrent upload threads for multiple files. Defaults to 1.
             force_upload: Whether to upload files even if they're already present in
                                 Google Photos (based on hash). Defaults to False.
-            delete_from_host: Whether to delete the file from the host after successful upload.
-                                    Defaults to False.
+            delete_from_host: Whether to delete each file from the host immediately after its own
+                                    successful upload. Defaults to False.
+            sleep_interval: Seconds to sleep between uploads. Useful to avoid rate-limiting.
+                                    Defaults to 0 (no sleep).
             filter_exp: The filter expression to match against filenames or paths.
             filter_exclude: If True, exclude files matching the filter.
             filter_regex: If True, treat the expression as a regular expression.
@@ -315,7 +341,7 @@ class Client:
                             }
 
         Raises:
-            TypeError: If `target` is not a file path, directory path, or a squence of such paths.
+            TypeError: If `target` is not a file path, directory path, or a sequence of such paths.
             ValueError: If no valid media files are found to upload.
         """
         path_hash_pairs = self._handle_target_input(
@@ -335,15 +361,13 @@ class Client:
             force_upload=force_upload,
             use_quota=use_quota,
             saver=saver,
+            delete_from_host=delete_from_host,
+            sleep_interval=sleep_interval,
         )
 
         if album_name:
             self._handle_album_creation(results, album_name, show_progress)
 
-        if delete_from_host:
-            for file_path, _ in results.items():
-                self.logger.info(f"{file_path} deleting from host")
-                os.remove(file_path)
         return results
 
     def _handle_target_input(
@@ -377,14 +401,20 @@ class Client:
             ValueError: If no valid media files are found or if filtering leaves no files to upload.
         """
         path_hash_pairs: Mapping[Path, bytes | str] = {}
-        if isinstance(target, (str, Path)):
-            target = [target]
 
-            if not isinstance(target, Sequence) or not all(isinstance(p, (str, Path)) for p in target):
-                raise TypeError("`target` must be a file path, a directory path, or a squence of such paths.")
+        if isinstance(target, dict) and all(isinstance(k, Path) and isinstance(v, (bytes, str)) for k, v in target.items()):
+            # Pre-built path->hash mapping provided directly
+            path_hash_pairs = target
+        elif isinstance(target, (str, Path, Sequence)):
+            # Normalise single path or sequence of paths into a list
+            if isinstance(target, (str, Path)):
+                target = [target]
+
+            if not all(isinstance(p, (str, Path)) for p in target):  # type: ignore[union-attr]
+                raise TypeError("`target` must be a file path, a directory path, or a sequence of such paths.")
 
             # Expand all paths to a flat list of files
-            files_to_upload = [file for path in target for file in self._search_for_media_files(path, recursive=recursive)]
+            files_to_upload = [file for path in target for file in self._search_for_media_files(path, recursive=recursive)]  # type: ignore[union-attr]
 
             if not files_to_upload:
                 raise ValueError("No valid media files found to upload.")
@@ -396,10 +426,10 @@ class Client:
                 raise ValueError("No media files left after filtering.")
 
             for path in files_to_upload:
-                path_hash_pairs[path] = b""  # epmty hash values to be calculated later
+                path_hash_pairs[path] = b""  # empty hash values to be calculated later
+        else:
+            raise TypeError("`target` must be a file path, a directory path, a sequence of such paths, or a Path->hash mapping.")
 
-        elif isinstance(target, dict) and all(isinstance(k, Path) and isinstance(v, (bytes, str)) for k, v in target.items()):
-            path_hash_pairs = target
         return path_hash_pairs
 
     def _search_for_media_files(self, path: str | Path, recursive: bool) -> list[Path]:
@@ -455,7 +485,17 @@ class Client:
         finally:
             progress.update(hash_calc_progress_id, visible=False)
 
-    def _upload_concurrently(self, path_hash_pairs: Mapping[Path, bytes | str], threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool) -> dict[str, str]:
+    def _upload_concurrently(
+        self,
+        path_hash_pairs: Mapping[Path, bytes | str],
+        threads: int,
+        show_progress: bool,
+        force_upload: bool,
+        use_quota: bool,
+        saver: bool,
+        delete_from_host: bool = False,
+        sleep_interval: float = 0,
+    ) -> dict[str, str]:
         """
         Upload files concurrently to Google Photos.
 
@@ -466,6 +506,9 @@ class Client:
             force_upload: Upload even if file exists in Google Photos.
             use_quota: Count uploads against storage quota.
             saver: Upload in storage saver quality.
+            delete_from_host: Delete each file from the local host immediately after its own
+                              successful upload.
+            sleep_interval: Seconds to sleep after each successful upload.
 
         Returns:
             dict[str, str]: Dictionary mapping file paths to media keys.
@@ -499,7 +542,20 @@ class Client:
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(path_hash_pairs.keys()), visible=show_progress)
         with context:
             with ThreadPoolExecutor(max_workers=threads) as executor:
-                futures = {executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver): (path, hash_value) for path, hash_value in path_hash_pairs.items()}
+                futures = {
+                    executor.submit(
+                        self._upload_file,
+                        path,
+                        hash_value,
+                        progress=file_progress,
+                        force_upload=force_upload,
+                        use_quota=use_quota,
+                        saver=saver,
+                        delete_from_host=delete_from_host,
+                        sleep_interval=sleep_interval,
+                    ): (path, hash_value)
+                    for path, hash_value in path_hash_pairs.items()
+                }
                 for future in as_completed(futures):
                     file = futures[future]
                     try:
