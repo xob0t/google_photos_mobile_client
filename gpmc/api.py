@@ -2,13 +2,17 @@ from typing import Any, IO, Generator, Literal, Sequence
 import time
 from urllib.parse import parse_qs
 from pathlib import Path
+import logging
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
 from blackboxprotobuf import decode_message, encode_message
+from blackboxprotobuf.lib.exceptions import BlackboxProtobufException
 
 from . import message_types
-from .exceptions import UploadRejected
+from .exceptions import UploadRejected, ProtobufDecodeError, ProtobufEncodeError
+
+logger = logging.getLogger("rich")
 
 DEFAULT_TIMEOUT = 60
 RETRIES = 10
@@ -233,7 +237,12 @@ class Api:
 
         response.raise_for_status()
 
-        upload_response_decoded, _ = decode_message(response.content)
+        try:
+            upload_response_decoded, _ = decode_message(response.content)
+        except (BlackboxProtobufException, Exception) as e:
+            logger.warning(f"Failed to decode upload response: {e}")
+            logger.debug(f"Response content (first 500 bytes): {response.content[:500]}")
+            raise ProtobufDecodeError(f"Failed to decode upload response: {e}") from e
         return upload_response_decoded
 
     def commit_upload(
@@ -331,7 +340,12 @@ class Api:
             "3": bytes([1, 3]),
         }
 
-        serialized_data = encode_message(proto_body, message_types.COMMIT_UPLOAD)  # type: ignore
+        try:
+            serialized_data = encode_message(proto_body, message_types.COMMIT_UPLOAD)  # type: ignore
+        except (BlackboxProtobufException, Exception) as e:
+            logger.error(f"Failed to encode commit_upload request for file '{file_name}'")
+            logger.debug(f"Proto body keys: {proto_body.keys()}")
+            raise ProtobufEncodeError(f"Failed to encode commit_upload request: {e}") from e
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -350,10 +364,16 @@ class Api:
                 timeout=self.timeout,
             )
         response.raise_for_status()
-        decoded_message, _ = decode_message(response.content)
+        try:
+            decoded_message, _ = decode_message(response.content)
+        except (BlackboxProtobufException, Exception) as e:
+            logger.error(f"Failed to decode commit_upload response for file '{file_name}'")
+            logger.debug(f"Response content (first 500 bytes): {response.content[:500]}")
+            raise ProtobufDecodeError(f"Failed to decode commit_upload response: {e}") from e
         try:
             media_key = decoded_message["1"]["3"]["1"]
         except KeyError as e:
+            logger.warning(f"File upload rejected by api for file '{file_name}'")
             raise UploadRejected("File upload rejected by api") from e
         return media_key
 
@@ -422,7 +442,13 @@ class Api:
             "8": {"3": self.model, "4": self.make, "5": self.android_api_version},
         }
 
-        serialized_data = encode_message(proto_body, message_types.CREATE_ALBUM)  # type: ignore
+        try:
+            serialized_data = encode_message(proto_body, message_types.CREATE_ALBUM)  # type: ignore
+        except (BlackboxProtobufException, Exception) as e:
+            logger.error(f"Failed to encode create_album request for album '{album_name}' with {len(media_keys)} media items")
+            logger.debug(f"Proto body: {proto_body}")
+            logger.debug(f"Media keys: {media_keys[:5]}..." if len(media_keys) > 5 else f"Media keys: {media_keys}")
+            raise ProtobufEncodeError(f"Failed to encode create_album request: {e}") from e
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -442,8 +468,15 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = decode_message(response.content)
-        return decoded_message["1"]["1"]
+        try:
+            decoded_message, _ = decode_message(response.content)
+            return decoded_message["1"]["1"]
+        except (BlackboxProtobufException, KeyError, Exception) as e:
+            logger.error(f"Failed to decode create_album response for album '{album_name}'")
+            logger.debug(f"Response content (first 500 bytes): {response.content[:500]}")
+            if isinstance(e, KeyError):
+                raise ProtobufDecodeError(f"Unexpected response structure when creating album: {e}") from e
+            raise ProtobufDecodeError(f"Failed to decode create_album response: {e}") from e
 
     def add_media_to_album(self, album_media_key: str, media_keys: Sequence[str]) -> dict:
         """Add media to an album.
