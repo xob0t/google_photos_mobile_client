@@ -31,8 +31,8 @@ class Api:
         self.android_api_version = 28
         self.model = "Pixel XL"
         self.make = "Google"
-        self.client_verion_code = 49029607
-        self.user_agent = f"com.google.android.apps.photos/{self.client_verion_code} (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)"
+        self.client_version_code = 49029607
+        self.user_agent = f"com.google.android.apps.photos/{self.client_version_code} (Linux; U; Android 9; en_US; Pixel XL; Build/PQ2A.190205.001; Cronet/127.0.6510.5) (gzip)"
         self.language = language
         self.auth_data = auth_data.strip()
         self.auth_response_cache: dict[str, str] = {"Expiry": "0", "Auth": ""}
@@ -332,7 +332,7 @@ class Api:
             "3": dedup_keys,
             "4": 1,
             "8": {"4": {"2": {}, "3": {"1": {}}, "4": {}, "5": {"1": {}}}},
-            "9": {"1": 5, "2": {"1": self.client_verion_code, "2": str(self.android_api_version)}},
+            "9": {"1": 5, "2": {"1": self.client_version_code, "2": str(self.android_api_version)}},
         }
         serialized_data = encode_message(proto_body, message_types.MOVE_TO_TRASH)  # type: ignore
         headers = {
@@ -1232,7 +1232,7 @@ class Api:
             "3": dedup_keys,
             "4": 2,
             "8": {"4": {"2": {}, "3": {"1": {}}}},
-            "9": {"1": 5, "2": {"1": self.client_verion_code, "2": str(self.android_api_version)}},
+            "9": {"1": 5, "2": {"1": self.client_version_code, "2": str(self.android_api_version)}},
         }
 
         serialized_data = encode_message(proto_body, message_types.RESTORE_FROM_TRASH)  # type: ignore
