@@ -1,6 +1,6 @@
-class CustomException(Exception):
+class CustomError(Exception):
     pass
 
 
-class UploadRejected(CustomException):
+class UploadRejectedError(CustomError):
     pass

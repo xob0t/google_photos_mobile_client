@@ -1,7 +1,7 @@
 import base64
 
 from .models import MediaItem
-from .utils import int64_to_float, int32_to_float, fixed32_to_float, urlsafe_base64
+from .utils import fixed32_to_float, int32_to_float, int64_to_float, urlsafe_base64
 
 
 def _parse_media_item(d: dict) -> MediaItem:
@@ -134,11 +134,8 @@ def parse_db_update(data: dict) -> tuple[str, str | None, list[MediaItem], list[
     media_items = _get_items_list(data, "2")
     remote_media.extend(_parse_media_item(d) for d in media_items)
 
-    media_keys_to_delete = []
     deletions = _get_items_list(data, "9")
-    for d in deletions:
-        if media_key := _parse_deletion_item(d):
-            media_keys_to_delete.append(media_key)
+    media_keys_to_delete = [media_key for d in deletions if (media_key := _parse_deletion_item(d))]
 
     # collections = _get_items_list(data, "3")
     # remote_media.extend(_parse_collection_item(d) for d in collections)

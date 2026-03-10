@@ -2,5 +2,5 @@
   "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "*_test.py"],
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": true,
-  "ruff.lineLength": 250
+  "ruff.lineLength": 200
 }
