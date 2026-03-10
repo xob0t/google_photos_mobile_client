@@ -124,6 +124,9 @@ class Client:
             if not force_upload:
                 progress.update(task_id=file_progress_id, description=f"Checking: {file_path.name}")
                 if remote_media_key := self.api.find_remote_media_by_hash(hash_bytes):
+                    if delete_from_host:
+                        self.logger.info(f"{file_path} deleting from host")
+                        os.remove(file_path)
                     return {file_path.absolute().as_posix(): remote_media_key}
 
             upload_token = self.api.get_upload_token(hash_b64, file_size)
