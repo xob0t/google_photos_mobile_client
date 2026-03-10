@@ -34,6 +34,8 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 
+TargetMapping = Mapping[Path, bytes | str | None]
+
 
 class Client:
     """Google Photos client based on reverse engineered mobile API."""
@@ -90,7 +92,7 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, hash_value: bytes | str, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool = False) -> dict[str, str]:
+    def _upload_file(self, file_path: str | Path, hash_value: bytes | str | None, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool = False) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -270,7 +272,7 @@ class Client:
 
     def upload(
         self,
-        target: str | Path | Sequence[str | Path] | Mapping[Path, bytes | str],
+        target: str | Path | Sequence[str | Path] | TargetMapping,
         album_name: str | None = None,
         use_quota: bool = False,
         saver: bool = False,
@@ -355,14 +357,14 @@ class Client:
 
     def _handle_target_input(
         self,
-        target: str | Path | Sequence[str | Path] | Mapping[Path, bytes | str],
+        target: str | Path | Sequence[str | Path] | TargetMapping,
         recursive: bool,
         filter_exp: str,
         filter_exclude: bool,
         filter_regex: bool,
         filter_ignore_case: bool,
         filter_path: bool,
-    ) -> Mapping[Path, bytes | str]:
+    ) -> TargetMapping:
         """
         Process and validate the upload target input into a consistent path-hash mapping.
 
@@ -376,14 +378,14 @@ class Client:
             filter_path: If True, check for matches in the full path instead of just the filename.
 
         Returns:
-            Mapping[Path, bytes | str]: A dictionary mapping file paths to their SHA-1 hashes.
+            TargetMapping: A dictionary mapping file paths to their SHA-1 hashes.
                                     Files without precomputed hashes will have empty bytes (b"").
 
         Raises:
             TypeError: If `target` is not a valid path, sequence of paths, or path-to-hash mapping.
             ValueError: If no valid media files are found or if filtering leaves no files to upload.
         """
-        path_hash_pairs: Mapping[Path, bytes | str] = {}
+        path_hash_pairs: TargetMapping = {}
         if isinstance(target, (str, Path)):
             target = [target]
 
@@ -403,9 +405,9 @@ class Client:
                 raise ValueError("No media files left after filtering.")
 
             for path in files_to_upload:
-                path_hash_pairs[path] = b""  # epmty hash values to be calculated later
+                path_hash_pairs[path] = None  # empty hash values to be calculated later
 
-        elif isinstance(target, dict) and all(isinstance(k, Path) and isinstance(v, (bytes, str)) for k, v in target.items()):
+        elif isinstance(target, dict) and all(isinstance(k, Path) and isinstance(v, (bytes, str, type(None))) for k, v in target.items()):
             path_hash_pairs = target
         return path_hash_pairs
 
@@ -462,7 +464,7 @@ class Client:
         finally:
             progress.update(hash_calc_progress_id, visible=False)
 
-    def _upload_concurrently(self, path_hash_pairs: Mapping[Path, bytes | str], threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool) -> dict[str, str]:
+    def _upload_concurrently(self, path_hash_pairs: TargetMapping, threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool) -> dict[str, str]:
         """
         Upload files concurrently to Google Photos.
 
