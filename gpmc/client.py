@@ -327,7 +327,7 @@ class Client:
                             }
 
         Raises:
-            TypeError: If `target` is not a file path, directory path, or a squence of such paths.
+            TypeError: If `target` is not a file path, directory path, or a sequence of such paths.
             ValueError: If no valid media files are found to upload.
         """
         path_hash_pairs = self._handle_target_input(
@@ -389,9 +389,7 @@ class Client:
         if isinstance(target, (str, Path)):
             target = [target]
 
-            if not isinstance(target, Sequence) or not all(isinstance(p, (str, Path)) for p in target):
-                raise TypeError("`target` must be a file path, a directory path, or a squence of such paths.")
-
+        if isinstance(target, Sequence) and all(isinstance(p, (str, Path)) for p in target):
             # Expand all paths to a flat list of files
             files_to_upload = [file for path in target for file in self._search_for_media_files(path, recursive=recursive)]
 
@@ -409,6 +407,9 @@ class Client:
 
         elif isinstance(target, dict) and all(isinstance(k, Path) and isinstance(v, (bytes, str, type(None))) for k, v in target.items()):
             path_hash_pairs = target
+        else:
+            raise TypeError("`target` must be a file path, a directory path, or a sequence of such paths.")
+
         return path_hash_pairs
 
     def _search_for_media_files(self, path: str | Path, recursive: bool) -> list[Path]:
