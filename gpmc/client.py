@@ -1,32 +1,33 @@
-from typing import Literal, Sequence, Mapping
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import signal
-from contextlib import nullcontext
+import mimetypes
 import os
 import re
-import mimetypes
+import signal
+from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import nullcontext
 from pathlib import Path
+from typing import Literal
 
 from rich.console import Group
 from rich.live import Live
 from rich.progress import (
-    SpinnerColumn,
-    MofNCompleteColumn,
     DownloadColumn,
-    TaskProgressColumn,
-    TransferSpeedColumn,
+    MofNCompleteColumn,
     Progress,
+    SpinnerColumn,
+    TaskID,
+    TaskProgressColumn,
     TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
-    TaskID,
+    TransferSpeedColumn,
 )
 
-from .db import Storage
-from .api import Api, DEFAULT_TIMEOUT
 from . import utils
-from .hash_handler import calculate_sha1_hash, convert_sha1_hash
+from .api import DEFAULT_TIMEOUT, Api
+from .db import Storage
 from .db_update_parser import parse_db_update
+from .hash_handler import calculate_sha1_hash, convert_sha1_hash
 
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -92,7 +93,9 @@ class Client:
 
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
-    def _upload_file(self, file_path: str | Path, hash_value: bytes | str | None, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool = False) -> dict[str, str]:
+    def _upload_file(
+        self, file_path: str | Path, hash_value: bytes | str | None, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool = False
+    ) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
 
@@ -129,7 +132,7 @@ class Client:
                 if remote_media_key := self.api.find_remote_media_by_hash(hash_bytes):
                     if delete_from_host:
                         self.logger.info(f"{file_path} deleting from host")
-                        os.remove(file_path)
+                        file_path.unlink()
                     return {file_path.absolute().as_posix(): remote_media_key}
 
             upload_token = self.api.get_upload_token(hash_b64, file_size)
@@ -138,7 +141,7 @@ class Client:
             with progress.open(file_path, "rb", task_id=file_progress_id) as file:
                 upload_response = self.api.upload_file(file=file, upload_token=upload_token)
             progress.update(task_id=file_progress_id, description=f"Finalizing Upload: {file_path.name}")
-            last_modified_timestamp = int(os.path.getmtime(file_path))
+            last_modified_timestamp = int(file_path.stat().st_mtime)
             model = "Pixel XL"
             quality = "original"
             if saver:
@@ -158,7 +161,7 @@ class Client:
             # Delete file immediately after successful upload if requested
             if delete_from_host:
                 self.logger.info(f"{file_path} deleting from host")
-                os.remove(file_path)
+                file_path.unlink()
 
             return {file_path.absolute().as_posix(): media_key}
         finally:
@@ -170,23 +173,23 @@ class Client:
         Extends Python mimetype library with RAW photo file extensions.
         """
         raw_mime_types = {
-            '.arw': 'image/x-sony-arw',
-            '.cr2': 'image/x-canon-cr2', 
-            '.crw': 'image/x-canon-crw',
-            '.dcr': 'image/x-kodak-dcr',
+            ".arw": "image/x-sony-arw",
+            ".cr2": "image/x-canon-cr2",
+            ".crw": "image/x-canon-crw",
+            ".dcr": "image/x-kodak-dcr",
             # '.dng': 'image/x-adobe-dng', # two of my test dng files were rejected by Google Photos API
-            '.erf': 'image/x-epson-erf',
-            '.k25': 'image/x-kodak-k25',
-            '.kdc': 'image/x-kodak-kdc',
-            '.mrw': 'image/x-minolta-mrw',
-            '.nef': 'image/x-nikon-nef',
-            '.orf': 'image/x-olympus-orf',
-            '.pef': 'image/x-pentax-pef',
-            '.raf': 'image/x-fuji-raf',
-            '.raw': 'image/x-panasonic-raw',
-            '.sr2': 'image/x-sony-sr2',
-            '.srf': 'image/x-sony-srf',
-            '.x3f': 'image/x-sigma-x3f',
+            ".erf": "image/x-epson-erf",
+            ".k25": "image/x-kodak-k25",
+            ".kdc": "image/x-kodak-kdc",
+            ".mrw": "image/x-minolta-mrw",
+            ".nef": "image/x-nikon-nef",
+            ".orf": "image/x-olympus-orf",
+            ".pef": "image/x-pentax-pef",
+            ".raf": "image/x-fuji-raf",
+            ".raw": "image/x-panasonic-raw",
+            ".sr2": "image/x-sony-sr2",
+            ".srf": "image/x-sony-srf",
+            ".x3f": "image/x-sigma-x3f",
         }
 
         for extension, mime_type in raw_mime_types.items():
@@ -260,10 +263,7 @@ class Client:
                 flags = re.IGNORECASE if filter_ignore_case else 0
                 matches = bool(re.search(expression, text_to_check, flags))
             else:
-                if filter_ignore_case:
-                    matches = expression.lower() in text_to_check.lower()
-                else:
-                    matches = expression in text_to_check
+                matches = expression.lower() in text_to_check.lower() if filter_ignore_case else expression in text_to_check
 
             if (matches and not filter_exclude) or (not matches and filter_exclude):
                 filtered_paths.append(path)
@@ -449,7 +449,11 @@ class Client:
         if len(files) == 0:
             raise ValueError("No files in the directory.")
 
-        media_files = [file for file in files if any(mimetype_guess is not None and mimetype_guess.startswith(mimetype) for mimetype in self.valid_mimetypes if (mimetype_guess := mimetypes.guess_type(file)[0]) is not None)]
+        media_files = [
+            file
+            for file in files
+            if any(mimetype_guess is not None and mimetype_guess.startswith(mimetype) for mimetype in self.valid_mimetypes if (mimetype_guess := mimetypes.guess_type(file)[0]) is not None)
+        ]
 
         if len(media_files) == 0:
             raise ValueError("No files in the directory matched image or video mime types")
@@ -507,20 +511,25 @@ class Client:
         context = (show_progress and Live(progress_group)) or nullcontext()
 
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(path_hash_pairs.keys()), visible=show_progress)
-        with context:
-            with ThreadPoolExecutor(max_workers=threads) as executor:
-                futures = {executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver, delete_from_host=delete_from_host): (path, hash_value) for path, hash_value in path_hash_pairs.items()}
-                for future in as_completed(futures):
-                    target = futures[future]
-                    try:
-                        media_key_dict = future.result()
-                        uploaded_files = uploaded_files | media_key_dict
-                    except Exception as e:
-                        self.logger.error(f"Error uploading file {target[0]}: {e}")
-                        upload_error_count += 1
-                        overall_progress.update(task_id=overall_task_id, description=f"[bold red] Errors: {upload_error_count}")
-                    finally:
-                        overall_progress.advance(overall_task_id)
+        with context, ThreadPoolExecutor(max_workers=threads) as executor:
+            futures = {
+                executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver, delete_from_host=delete_from_host): (
+                    path,
+                    hash_value,
+                )
+                for path, hash_value in path_hash_pairs.items()
+            }
+            for future in as_completed(futures):
+                target = futures[future]
+                try:
+                    media_key_dict = future.result()
+                    uploaded_files = uploaded_files | media_key_dict
+                except Exception as e:
+                    self.logger.error(f"Error uploading file {target[0]}: {e}")
+                    upload_error_count += 1
+                    overall_progress.update(task_id=overall_task_id, description=f"[bold red] Errors: {upload_error_count}")
+                finally:
+                    overall_progress.advance(overall_task_id)
         return uploaded_files
 
     def move_to_trash(self, sha1_hashes: str | bytes | Sequence[str | bytes]) -> dict:

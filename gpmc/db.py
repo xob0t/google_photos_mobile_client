@@ -1,7 +1,8 @@
 import sqlite3
-from typing import Iterable, Self, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict
 from pathlib import Path
+from typing import Self
 
 from .models import MediaItem
 

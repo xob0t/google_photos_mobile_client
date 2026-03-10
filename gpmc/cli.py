@@ -1,8 +1,8 @@
 import argparse
 from pprint import pp
 
-from .client import Client
 from .api import DEFAULT_TIMEOUT
+from .client import Client
 
 
 def main():
