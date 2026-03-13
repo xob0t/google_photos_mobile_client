@@ -1,14 +1,13 @@
-import unittest
-from pathlib import Path
+import os
 from gpmc import Client, utils
 
-
+@unittest.skipIf(not os.getenv("GP_AUTH_DATA"), "GP_AUTH_DATA environment variable not set")
 class TestUpload(unittest.TestCase):
     def setUp(self):
         self.image_file_path = "media/image.png"
         self.image_sha1_hash_b64 = "bjvmULLYvkVj8jWVQFu1Pl98hYA="
         self.image_sha1_hash_hxd = "6e3be650b2d8be4563f23595405bb53e5f7c8580"
-        self.directory_path = "C:/Users/admin/Pictures"
+        self.directory_path = Path.home()
         self.mkv_file_path = "media/sample_640x360.mkv"
         self.client = Client()
     def test_get_manifest_content(self):

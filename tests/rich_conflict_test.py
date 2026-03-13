@@ -1,9 +1,7 @@
-import unittest
-from rich.live import Live
-from rich.errors import LiveError
+import os
 from gpmc import Client
 
-
+@unittest.skipIf(not os.getenv("GP_AUTH_DATA"), "GP_AUTH_DATA environment variable not set")
 class TestUpload(unittest.TestCase):
     def setUp(self):
         self.client = Client()

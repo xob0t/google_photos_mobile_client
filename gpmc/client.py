@@ -94,7 +94,15 @@ class Client:
         raise ValueError("`GP_AUTH_DATA` environment variable not set. Create it or provide `auth_data` as an argument.")
 
     def _upload_file(
-        self, file_path: str | Path, hash_value: bytes | str | None, progress: Progress, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool = False
+        self,
+        file_path: str | Path,
+        hash_value: bytes | str | None,
+        progress: Progress,
+        force_upload: bool,
+        use_quota: bool,
+        saver: bool,
+        delete_from_host: bool = False,
+        sleep_interval: float = 0,
     ) -> dict[str, str]:
         """
         Upload a single file to Google Photos.
@@ -108,6 +116,7 @@ class Client:
             use_quota: Uploaded files will count against your Google Photos storage quota.
             saver: Upload files in storage saver quality.
             delete_from_host: Whether to delete the file from host immediately after successful upload.
+            sleep_interval: Time to sleep after each file upload.
 
         Returns:
             dict[str, str]: A dictionary mapping the absolute file path to its Google Photos media key.
@@ -133,6 +142,9 @@ class Client:
                     if delete_from_host:
                         self.logger.info(f"{file_path} deleting from host")
                         file_path.unlink()
+                    if sleep_interval > 0:
+                        import time as _time
+                        _time.sleep(sleep_interval)
                     return {file_path.absolute().as_posix(): remote_media_key}
 
             upload_token = self.api.get_upload_token(hash_b64, file_size)
@@ -162,6 +174,10 @@ class Client:
             if delete_from_host:
                 self.logger.info(f"{file_path} deleting from host")
                 file_path.unlink()
+
+            if sleep_interval > 0:
+                import time as _time
+                _time.sleep(sleep_interval)
 
             return {file_path.absolute().as_posix(): media_key}
         finally:
@@ -281,6 +297,7 @@ class Client:
         threads: int = 1,
         force_upload: bool = False,
         delete_from_host: bool = False,
+        sleep_interval: float = 0,
         filter_exp: str = "",
         filter_exclude: bool = False,
         filter_regex: bool = False,
@@ -313,6 +330,7 @@ class Client:
                                 Google Photos (based on hash). Defaults to False.
             delete_from_host: Whether to delete each file immediately after its individual upload completes.
                                     Defaults to False.
+            sleep_interval: Time to sleep after each file upload. Defaults to 0.
             filter_exp: The filter expression to match against filenames or paths.
             filter_exclude: If True, exclude files matching the filter.
             filter_regex: If True, treat the expression as a regular expression.
@@ -348,6 +366,7 @@ class Client:
             use_quota=use_quota,
             saver=saver,
             delete_from_host=delete_from_host,
+            sleep_interval=sleep_interval,
         )
 
         if album_name:
@@ -469,7 +488,17 @@ class Client:
         finally:
             progress.update(hash_calc_progress_id, visible=False)
 
-    def _upload_concurrently(self, path_hash_pairs: TargetMapping, threads: int, show_progress: bool, force_upload: bool, use_quota: bool, saver: bool, delete_from_host: bool) -> dict[str, str]:
+    def _upload_concurrently(
+        self,
+        path_hash_pairs: TargetMapping,
+        threads: int,
+        show_progress: bool,
+        force_upload: bool,
+        use_quota: bool,
+        saver: bool,
+        delete_from_host: bool,
+        sleep_interval: float = 0,
+    ) -> dict[str, str]:
         """
         Upload files concurrently to Google Photos.
 
@@ -514,7 +543,17 @@ class Client:
         overall_task_id = overall_progress.add_task("Errors: 0", total=len(path_hash_pairs.keys()), visible=show_progress)
         with context, ThreadPoolExecutor(max_workers=threads) as executor:
             futures = {
-                executor.submit(self._upload_file, path, hash_value, progress=file_progress, force_upload=force_upload, use_quota=use_quota, saver=saver, delete_from_host=delete_from_host): (
+                executor.submit(
+                    self._upload_file,
+                    path,
+                    hash_value,
+                    progress=file_progress,
+                    force_upload=force_upload,
+                    use_quota=use_quota,
+                    saver=saver,
+                    delete_from_host=delete_from_host,
+                    sleep_interval=sleep_interval,
+                ): (
                     path,
                     hash_value,
                 )
