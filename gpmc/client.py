@@ -408,7 +408,7 @@ class Client:
         self,
         target: str | Path | Sequence[str | Path] | TargetMapping,
         album_name: str | None = None,
-        album_id: str | None = None, # <--- ДОБАВИТЬ ЭТУ СТРОКУ
+        album_id: str | None = None, 
         use_quota: bool = False,
         saver: bool = False,
         recursive: bool = False,

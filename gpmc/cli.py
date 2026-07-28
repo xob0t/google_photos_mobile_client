@@ -66,7 +66,7 @@ def main():
     output = client.upload(
         target=args.path,
         album_name=args.album,
-        album_id=args.album_id, # <--- ДОБАВИТЬ ЭТУ СТРОКУ
+        album_id=args.album_id,
         use_quota=args.use_quota,
         saver=args.saver,
         show_progress=args.progress,
