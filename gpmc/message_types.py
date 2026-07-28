@@ -238,7 +238,7 @@ GET_UPLOAD_TOKEN = {
 }
 
 ADD_MEDIA_TO_ALBUM = {
-    "1": {"type": "string", "seen_repeated": True},  # <--- Добавлено "seen_repeated": True
+    "1": {"type": "string", "seen_repeated": True}, 
     "2": {"type": "string"},
     "5": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
     "6": {
