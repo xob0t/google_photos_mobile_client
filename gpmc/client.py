@@ -408,6 +408,7 @@ class Client:
         self,
         target: str | Path | Sequence[str | Path] | TargetMapping,
         album_name: str | None = None,
+        album_id: str | None = None, # <--- ДОБАВИТЬ ЭТУ СТРОКУ
         use_quota: bool = False,
         saver: bool = False,
         recursive: bool = False,
@@ -502,7 +503,10 @@ class Client:
             progress_callback=progress_callback,
         )
 
-        if album_name:
+	if album_id:
+            media_keys = list(results.values())
+            self.add_to_existing_album(media_keys, album_id, show_progress)
+        elif album_name:
             self._handle_album_creation(results, album_name, show_progress)
 
         return results
@@ -861,6 +865,26 @@ class Client:
                     progress.update(task, advance=len(batch))
                 album_counter += 1
         return album_keys
+
+
+    def add_to_existing_album(self, media_keys: Sequence[str], album_id: str, show_progress: bool) -> None:
+        """Add media items to an existing album by its ID."""
+        batch_size = 500
+        
+        progress = Progress(
+            TextColumn("{task.description}"),
+            SpinnerColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+        )
+        task = progress.add_task("[bold yellow]Adding items to existing album[/bold yellow]:", total=len(media_keys))
+        context = (show_progress and Live(progress)) or nullcontext()
+
+        with context:
+            for i in range(0, len(media_keys), batch_size):
+                batch = media_keys[i : i + batch_size]
+                self.api.add_media_to_album(album_media_key=album_id, media_keys=batch)
+                progress.update(task, advance=len(batch))
 
     def update_cache(self, show_progress: bool = True, max_sync_cycles: int = 10):
         """

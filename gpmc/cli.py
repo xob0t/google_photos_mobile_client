@@ -24,6 +24,8 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
+    parser.add_argument("--album-id", type=str, help="Add uploaded media to an EXISTING album by its ID (media key).")
+
     parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@host:port`")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--json-progress", action="store_true", help="Emit versioned NDJSON progress events to stderr.")
@@ -64,6 +66,7 @@ def main():
     output = client.upload(
         target=args.path,
         album_name=args.album,
+        album_id=args.album_id, # <--- ДОБАВИТЬ ЭТУ СТРОКУ
         use_quota=args.use_quota,
         saver=args.saver,
         show_progress=args.progress,
