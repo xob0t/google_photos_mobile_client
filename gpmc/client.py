@@ -502,8 +502,8 @@ class Client:
             skip_existing_filenames=skip_existing_filenames,
             progress_callback=progress_callback,
         )
-
-	if album_id:
+        
+        if album_id:
             media_keys = list(results.values())
             self.add_to_existing_album(media_keys, album_id, show_progress)
         elif album_name:
