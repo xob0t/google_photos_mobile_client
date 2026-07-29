@@ -189,7 +189,7 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = decode_message(response.content)
+        decoded_message, _ = decode_message(response.content, message_types.FIND_REMOTE_MEDIA_BY_HASH_RESPONSE)  # type: ignore
         media_key = decoded_message["1"].get("2", {}).get("2", {}).get("1", None)
         return media_key
 
@@ -306,7 +306,7 @@ class Api:
                 timeout=self.timeout,
             )
         response.raise_for_status()
-        decoded_message, _ = decode_message(response.content)
+        decoded_message, _ = decode_message(response.content, message_types.COMMIT_UPLOAD_RESPONSE)  # type: ignore
         try:
             media_key = decoded_message["1"]["3"]["1"]
         except KeyError as e:
@@ -440,7 +440,7 @@ class Api:
             )
         response.raise_for_status()
 
-        decoded_message, _ = decode_message(response.content)
+        decoded_message, _ = decode_message(response.content, message_types.CREATE_ALBUM_RESPONSE)  # type: ignore
         return decoded_message["1"]["1"]
 
     def add_media_to_album(self, album_media_key: str, media_keys: Sequence[str]) -> dict:
