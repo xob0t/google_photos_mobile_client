@@ -25,8 +25,7 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
-    album_group.add_argument("--album-id", type=str, help="Add uploaded media to an EXISTING album by its ID (media key).")
-
+    album_group.add_argument("--album-id", type=str, help="Add uploaded media to an existing album by its id (album media key). Cannot be combined with --album.")
     parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@host:port`")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--json-progress", action="store_true", help="Emit versioned NDJSON progress events to stderr.")

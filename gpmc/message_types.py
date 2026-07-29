@@ -238,7 +238,7 @@ GET_UPLOAD_TOKEN = {
 }
 
 ADD_MEDIA_TO_ALBUM = {
-    "1": {"type": "string"}, 
+    "1": {"type": "string"},
     "2": {"type": "string"},
     "5": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
     "6": {
@@ -2196,4 +2196,3 @@ RESTORE_FROM_TRASH = {
 LIB_STATE_RESPONSE_FIX = {
     "1": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"4": {"type": "string"}}}}}}},
 }
-

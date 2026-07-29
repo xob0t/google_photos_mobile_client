@@ -37,6 +37,9 @@ from .models import MediaItem
 # Make Ctrl+C work for cancelling threads
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+ALBUM_ITEM_LIMIT = 20000  # Maximum number of items per album
+ALBUM_BATCH_SIZE = 500  # Number of items to add per API call
+
 
 LogLevel = Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
 UploadPhase = Literal["hashing", "checking", "uploading", "finalizing", "complete", "skipped", "error"]
@@ -408,7 +411,7 @@ class Client:
         self,
         target: str | Path | Sequence[str | Path] | TargetMapping,
         album_name: str | None = None,
-        album_id: str | None = None, 
+        album_id: str | None = None,
         use_quota: bool = False,
         saver: bool = False,
         recursive: bool = False,
@@ -447,7 +450,10 @@ class Client:
                         - '/foo/bar/image2.jpg' will be placed in a 'bar' album.
                         - '/foo/bar/foo/image3.jpg' will be placed in a 'foo' album, distinct from the first 'foo' album.
 
-                album_id: The ID (media key) of an existing album to add uploaded media to.
+                Defaults to None.
+            album_id:
+                If provided, the uploaded media will be added to the existing album with this media key,
+                instead of creating a new one. Mutually exclusive with `album_name`.
 
                 Defaults to None.
             use_quota: Uploaded files will count against your Google Photos storage quota. Defaults to False.
@@ -477,8 +483,11 @@ class Client:
 
         Raises:
             TypeError: If `target` is not a file path, directory path, or a sequence of such paths.
-            ValueError: If no valid media files are found to upload.
+            ValueError: If no valid media files are found to upload, or if both `album_name` and `album_id` are given.
         """
+        if album_name and album_id:
+            raise ValueError("`album_name` and `album_id` are mutually exclusive.")
+
         if skip_existing_filenames:
             self.logger.info("Synchronizing local media cache from Google Photos...")
             self.update_cache(show_progress=show_progress)
@@ -504,10 +513,9 @@ class Client:
             skip_existing_filenames=skip_existing_filenames,
             progress_callback=progress_callback,
         )
-        
+
         if album_id:
-            media_keys = list(results.values())
-            self.add_to_existing_album(media_keys, album_id, show_progress)
+            self.add_to_existing_album(list(results.values()), album_id, show_progress)
         elif album_name:
             self._handle_album_creation(results, album_name, show_progress)
 
@@ -830,65 +838,78 @@ class Client:
             requests.HTTPError: If the API request fails.
             ValueError: If media_keys is empty.
         """
-        album_limit = 20000  # Maximum number of items per album
-        batch_size = 500  # Number of items to process per API call
         album_keys = []
         album_counter = 1
 
-        if len(media_keys) > album_limit:
-            self.logger.warning(f"{len(media_keys)} items exceed the album limit of {album_limit}. They will be split into multiple albums.")
+        if len(media_keys) > ALBUM_ITEM_LIMIT:
+            self.logger.warning(f"{len(media_keys)} items exceed the album limit of {ALBUM_ITEM_LIMIT}. They will be split into multiple albums.")
 
-        # Initialize progress bar
-        progress = Progress(
-            TextColumn("{task.description}"),
-            SpinnerColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-        )
+        progress = self._album_progress()
         task = progress.add_task(f"[bold yellow]Adding items to album[/bold yellow] [cyan]{album_name}[/cyan]:", total=len(media_keys))
 
         context = (show_progress and Live(progress)) or nullcontext()
 
         with context:
-            for i in range(0, len(media_keys), album_limit):
-                    batch = album_batch[j : j + batch_size]
-                    if current_album_key is None:
-                        # Create the album with the first batch
-                        current_album_key = self.api.create_album(album_name=current_album_name, media_keys=batch)
-                        album_keys.append(current_album_key)
-                    else:
-                        # Add to the existing album
-                        self.api.add_media_to_album(album_media_key=current_album_key, media_keys=batch)
-                    progress.update(task, advance=len(batch))
-                
+            for i in range(0, len(media_keys), ALBUM_ITEM_LIMIT):
+                album_batch = media_keys[i : i + ALBUM_ITEM_LIMIT]
+                # Add a suffix if media_keys will not fit into a single album
+                current_album_name = f"{album_name} {album_counter}" if len(media_keys) > ALBUM_ITEM_LIMIT else album_name
+                # Create the album with the first batch, then append the rest
+                first_batch = album_batch[:ALBUM_BATCH_SIZE]
+                current_album_key = self.api.create_album(album_name=current_album_name, media_keys=first_batch)
+                album_keys.append(current_album_key)
+                progress.update(task, advance=len(first_batch))
+                self._add_media_batches(current_album_key, album_batch[ALBUM_BATCH_SIZE:], progress, task)
                 album_counter += 1
         return album_keys
 
-def add_to_existing_album(self, media_keys: Sequence[str], album_id: str, show_progress: bool) -> None:
-        """Add media items to an existing album by its ID."""
+    def add_to_existing_album(self, media_keys: Sequence[str], album_id: str, show_progress: bool = False) -> str:
+        """
+        Add media items to an existing album, identified by its media key.
+
+        Args:
+            media_keys: Media keys of the media items to be added to album.
+            album_id: Media key of the target album.
+            show_progress: Whether to display progress in the console. Defaults to False.
+
+        Returns:
+            str: The album media key the items were added to.
+
+        Raises:
+            requests.HTTPError: If the API request fails.
+        """
         if not media_keys:
-            return
+            self.logger.warning(f"No media keys to add to album {album_id}, skipping.")
+            return album_id
 
-        album_limit = 20000
-        batch_size = 500
+        if len(media_keys) > ALBUM_ITEM_LIMIT:
+            self.logger.warning(f"{len(media_keys)} items exceed the album limit of {ALBUM_ITEM_LIMIT}. The api may reject items past the limit.")
 
-        if len(media_keys) > album_limit:
-            self.logger.warning(f"{len(media_keys)} items exceed the album limit of {album_limit}. Google Photos may reject some items.")
+        progress = self._album_progress()
+        task = progress.add_task(f"[bold yellow]Adding items to album[/bold yellow] [cyan]{album_id}[/cyan]:", total=len(media_keys))
 
-        progress = Progress(
+        context = (show_progress and Live(progress)) or nullcontext()
+
+        with context:
+            self._add_media_batches(album_id, media_keys, progress, task)
+        return album_id
+
+    @staticmethod
+    def _album_progress() -> Progress:
+        """Build the progress bar used by the album methods."""
+        return Progress(
             TextColumn("{task.description}"),
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
         )
-        task = progress.add_task("[bold yellow]Adding items to existing album[/bold yellow]:", total=len(media_keys))
-        context = (show_progress and Live(progress)) or nullcontext()
 
-        with context:
-            for i in range(0, len(media_keys), batch_size):
-                batch = media_keys[i : i + batch_size]
-                self.api.add_media_to_album(album_media_key=album_id, media_keys=batch)
-                progress.update(task, advance=len(batch))
+    def _add_media_batches(self, album_media_key: str, media_keys: Sequence[str], progress: Progress, task: TaskID) -> None:
+        """Add media keys to an existing album in api sized batches, advancing the given progress task."""
+        for i in range(0, len(media_keys), ALBUM_BATCH_SIZE):
+            batch = media_keys[i : i + ALBUM_BATCH_SIZE]
+            self.api.add_media_to_album(album_media_key=album_media_key, media_keys=batch)
+            progress.update(task, advance=len(batch))
 
     def update_cache(self, show_progress: bool = True, max_sync_cycles: int = 10):
         """
