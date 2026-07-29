@@ -71,7 +71,7 @@ Each event has a stable discriminator and version, for example:
 ```
 
 ```text
-usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--proxy PROXY] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT]
+usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM | --album-id ALBUM_ID] [--proxy PROXY] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT]
             [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path]
             path
 
@@ -90,6 +90,7 @@ options:
                         '/foo/image1.jpg' goes to 'foo'
                         '/foo/bar/image2.jpg' goes to 'bar'
                         '/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)
+  --album-id ALBUM_ID   Add uploaded media to an existing album by its id (album media key). Cannot be combined with --album.
   --proxy PROXY         Proxy to use. Format: `protocol://username:password@host:port`
   --progress            Display upload progress.
   --recursive           Scan the directory recursively.

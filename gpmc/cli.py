@@ -12,7 +12,8 @@ def main():
     parser = argparse.ArgumentParser(description="Google Photos mobile client.", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("path", type=str, help="Path to the file or directory to upload.")
     parser.add_argument("--auth_data", type=str, help="Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.")
-    parser.add_argument(
+    album_group = parser.add_mutually_exclusive_group()
+    album_group.add_argument(
         "--album",
         type=str,
         help=(
@@ -24,6 +25,7 @@ def main():
             "'/foo/bar/foo/image3.jpg' goes to 'foo' (distinct from the first 'foo' album)\n"
         ),
     )
+    album_group.add_argument("--album-id", type=str, help="Add uploaded media to an existing album by its id (album media key). Cannot be combined with --album.")
     parser.add_argument("--proxy", type=str, help="Proxy to use. Format: `protocol://username:password@host:port`")
     parser.add_argument("--progress", action="store_true", help="Display upload progress.")
     parser.add_argument("--json-progress", action="store_true", help="Emit versioned NDJSON progress events to stderr.")
@@ -64,6 +66,7 @@ def main():
     output = client.upload(
         target=args.path,
         album_name=args.album,
+        album_id=args.album_id,
         use_quota=args.use_quota,
         saver=args.saver,
         show_progress=args.progress,
