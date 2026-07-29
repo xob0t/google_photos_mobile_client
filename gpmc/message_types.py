@@ -2196,3 +2196,19 @@ RESTORE_FROM_TRASH = {
 LIB_STATE_RESPONSE_FIX = {
     "1": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"4": {"type": "string"}}}}}}},
 }
+
+# Media keys are base64-ish strings whose raw bytes occasionally parse as a valid submessage.
+# Without an explicit typedef blackboxprotobuf prefers the message interpretation and returns a
+# dict instead of the key, which later blows up in encode_message. Pinning the field to `string`
+# forces the correct interpretation. See https://github.com/xob0t/gpmc/issues/80
+FIND_REMOTE_MEDIA_BY_HASH_RESPONSE = {
+    "1": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"1": {"type": "string"}}}}}}},
+}
+
+COMMIT_UPLOAD_RESPONSE = {
+    "1": {"type": "message", "message_typedef": {"3": {"type": "message", "message_typedef": {"1": {"type": "string"}}}}},
+}
+
+CREATE_ALBUM_RESPONSE = {
+    "1": {"type": "message", "message_typedef": {"1": {"type": "string"}}},
+}
