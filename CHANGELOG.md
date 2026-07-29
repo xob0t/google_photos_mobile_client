@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/xob0t/gpmc/compare/v0.9.0...v0.10.0) (2026-07-29)
+
+
+### Features
+
+* add --album-id to upload into an existing album ([#79](https://github.com/xob0t/gpmc/issues/79)) ([551dbcd](https://github.com/xob0t/gpmc/commit/551dbcd9bf6d93881fca940a24a50bf245c647a9))
+
+
+### Bug Fixes
+
+* decode media keys as strings to avoid dict misparse ([#82](https://github.com/xob0t/gpmc/issues/82)) ([94b1b26](https://github.com/xob0t/gpmc/commit/94b1b267ca6819da542d4330a7dd216747eb0437)), closes [#80](https://github.com/xob0t/gpmc/issues/80)
+
 ## [0.9.0](https://github.com/xob0t/gpmc/compare/v0.8.0...v0.9.0) (2026-07-16)
 
 
