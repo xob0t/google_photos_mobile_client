@@ -238,7 +238,7 @@ GET_UPLOAD_TOKEN = {
 }
 
 ADD_MEDIA_TO_ALBUM = {
-    "1": {"type": "string", "seen_repeated": True}, 
+    "1": {"type": "string"}, 
     "2": {"type": "string"},
     "5": {"field_order": ["1"], "message_typedef": {"1": {"type": "int"}}, "type": "message"},
     "6": {
@@ -2196,44 +2196,4 @@ RESTORE_FROM_TRASH = {
 LIB_STATE_RESPONSE_FIX = {
     "1": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"2": {"type": "message", "message_typedef": {"4": {"type": "string"}}}}}}},
 }
-COMMIT_UPLOAD_RESPONSE = {
-    "1": {
-        "type": "message",
-        "message_typedef": {
-            "3": {
-                "type": "message",
-                "message_typedef": {
-                    "1": {"type": "string"}
-                }
-            }
-        }
-    }
-}
 
-FIND_REMOTE_MEDIA_BY_HASH_RESPONSE = {
-    "1": {
-        "type": "message",
-        "message_typedef": {
-            "2": {
-                "type": "message",
-                "message_typedef": {
-                    "2": {
-                        "type": "message",
-                        "message_typedef": {
-                            "1": {"type": "string"}
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-CREATE_ALBUM_RESPONSE = {
-    "1": {
-        "type": "message",
-        "message_typedef": {
-            "1": {"type": "string"}
-        }
-    }
-}

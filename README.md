@@ -71,7 +71,7 @@ Each event has a stable discriminator and version, for example:
 ```
 
 ```text
-usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM] [--proxy PROXY] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT]
+usage: gpmc [-h] [--auth_data AUTH_DATA] [--album ALBUM | --album-id ALBUM_ID] [--proxy PROXY] [--progress] [--recursive] [--threads THREADS] [--force-upload] [--delete-from-host] [--use-quota] [--saver] [--timeout TIMEOUT]
             [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--filter FILTER] [--exclude] [--regex] [--ignore-case] [--match-path]
             path
 

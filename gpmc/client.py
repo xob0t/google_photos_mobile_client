@@ -447,6 +447,8 @@ class Client:
                         - '/foo/bar/image2.jpg' will be placed in a 'bar' album.
                         - '/foo/bar/foo/image3.jpg' will be placed in a 'foo' album, distinct from the first 'foo' album.
 
+                album_id: The ID (media key) of an existing album to add uploaded media to.
+
                 Defaults to None.
             use_quota: Uploaded files will count against your Google Photos storage quota. Defaults to False.
             saver: Upload files in storage saver quality. Defaults to False.
@@ -853,24 +855,37 @@ class Client:
                 # Add a suffix if media_keys will not fit into a single album
                 current_album_name = f"{album_name} {album_counter}" if len(media_keys) > album_limit else album_name
                 current_album_key = None
+                
                 for j in range(0, len(album_batch), batch_size):
                     batch = album_batch[j : j + batch_size]
-                    if current_album_key is None:
-                        # Create the album with the first batch
-                        current_album_key = self.api.create_album(album_name=current_album_name, media_keys=batch)
-                        album_keys.append(current_album_key)
-                    else:
-                        # Add to the existing album
-                        self.api.add_media_to_album(album_media_key=current_album_key, media_keys=batch)
-                    progress.update(task, advance=len(batch))
+                    try:
+                        if current_album_key is None:
+                            # Create the album with the first batch
+                            current_album_key = self.api.create_album(album_name=current_album_name, media_keys=batch)
+                            album_keys.append(current_album_key)
+                        else:
+                            # Add to the existing album
+                            self.api.add_media_to_album(album_media_key=current_album_key, media_keys=batch)
+                    except Exception as e:
+                        self.logger.error(f"Failed to process a batch of {len(batch)} items for album '{current_album_name}': {e}")
+                    finally:
+                        progress.update(task, advance=len(batch))
+                
                 album_counter += 1
         return album_keys
 
 
     def add_to_existing_album(self, media_keys: Sequence[str], album_id: str, show_progress: bool) -> None:
         """Add media items to an existing album by its ID."""
+        if not media_keys:
+            return
+
+        album_limit = 20000
         batch_size = 500
-        
+
+        if len(media_keys) > album_limit:
+            self.logger.warning(f"{len(media_keys)} items exceed the album limit of {album_limit}. Google Photos may reject some items.")
+
         progress = Progress(
             TextColumn("{task.description}"),
             SpinnerColumn(),
@@ -883,8 +898,12 @@ class Client:
         with context:
             for i in range(0, len(media_keys), batch_size):
                 batch = media_keys[i : i + batch_size]
-                self.api.add_media_to_album(album_media_key=album_id, media_keys=batch)
-                progress.update(task, advance=len(batch))
+                try:
+                    self.api.add_media_to_album(album_media_key=album_id, media_keys=batch)
+                except Exception as e:
+                    self.logger.error(f"Failed to add a batch of {len(batch)} items to the existing album: {e}")
+                finally:
+                    progress.update(task, advance=len(batch))
 
     def update_cache(self, show_progress: bool = True, max_sync_cycles: int = 10):
         """
