@@ -2,7 +2,6 @@ import time
 from collections.abc import Generator, Sequence
 from pathlib import Path
 from typing import IO, Any, Literal
-import re
 from urllib.parse import parse_qsl
 
 import requests
@@ -189,13 +188,10 @@ class Api:
                 timeout=self.timeout,
             )
         response.raise_for_status()
-        
-        match = re.search(rb'([\w-]{35,150})', response.content)
-        if match:
-            return match.group(1).decode('utf-8')
 
         decoded_message, _ = decode_message(response.content)
-        return decoded_message.get("1", {}).get("2", {}).get("2", {}).get("1", None)
+        media_key = decoded_message["1"].get("2", {}).get("2", {}).get("1", None)
+        return media_key
 
     def upload_file(self, file: str | Path | bytes | IO[bytes] | Generator[bytes, None, None], upload_token: str) -> dict:
         """
@@ -310,19 +306,12 @@ class Api:
                 timeout=self.timeout,
             )
         response.raise_for_status()
-        match = re.search(rb'([\w-]{35,150})', response.content)
-        if match:
-            return match.group(1).decode('utf-8')
-
         decoded_message, _ = decode_message(response.content)
         try:
             media_key = decoded_message["1"]["3"]["1"]
-            if isinstance(media_key, dict):
-                raise ValueError("blackboxprotobuf incorrectly parsed media_key")
-            return media_key
-        except (KeyError, TypeError, ValueError) as e:
+        except KeyError as e:
             raise UploadRejectedError("File upload rejected by api") from e
-           
+        return media_key
 
     def move_remote_media_to_trash(self, dedup_keys: Sequence[str]) -> dict:
         """
@@ -451,13 +440,9 @@ class Api:
             )
         response.raise_for_status()
 
-        match = re.search(rb'([\w-]{35,150})', response.content)
-        if match:
-            return match.group(1).decode('utf-8')
-
         decoded_message, _ = decode_message(response.content)
         return decoded_message["1"]["1"]
-        
+
     def add_media_to_album(self, album_media_key: str, media_keys: Sequence[str]) -> dict:
         """Add media to an album.
 
