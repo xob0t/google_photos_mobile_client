@@ -1,6 +1,6 @@
 # GPMC
 
-Google Photos Mobile Client based on the reverse-engineered mobile API. “Mobile” refers to the API it uses, not the platforms it runs on—GPMC is a cross-platform Python library and CLI.
+Google Photos Mobile Client based on the reverse-engineered mobile API. "Mobile" refers to the API it uses, not the platforms it runs on. GPMC is a cross-platform Python library and CLI.
 
 ---
 
@@ -19,7 +19,7 @@ Google Photos Mobile Client based on the reverse-engineered mobile API. “Mobil
 - Real-time progress tracking.
 - Configurable threads for faster uploads (default: 1).
 
-### If you'd prefer a GUI client, use [https://github.com/xob0t/gotohp](https://github.com/xob0t/gotohp)
+### If you'd prefer a GUI client, use [gotohp](https://github.com/xob0t/gotohp)
 
 ## Installation
 
@@ -119,13 +119,13 @@ File Filter Options:
 
 You only need to do this once.
 
-### Option 1 - ReVanced. No root required
+### Option 1 - Morphe (No root required)
 
-1. Install Google Photos ReVanced on your device.
-    - Install GmsCore [https://github.com/ReVanced/GmsCore/releases](https://github.com/ReVanced/GmsCore/releases)
-    - Install patched apk [https://github.com/j-hc/revanced-magisk-module/releases](https://github.com/j-hc/revanced-magisk-module/releases) or patch it yourself
+1. Install Google Photos Morphe (DeVanced Patches) on your device:
+    - Install [microG-RE](https://github.com/MorpheApp/MicroG-RE/releases/latest)
+    - Install the patched APK from [Morphe-AutoBuilds](https://github.com/RookieEnough/Morphe-AutoBuilds/releases/tag/latest) or patch it yourself using [Morphe Manager](https://github.com/MorpheApp/morphe-manager/releases/latest) with the [De-Vanced](https://morphe.software/add-source?github=RookieEnough/De-Vanced) patch source.
 2. Connect the device to your PC via ADB.
-3. Open the terminal on your PC and execute
+3. Open a terminal on your PC and run:
 
     Windows
 
@@ -139,53 +139,52 @@ You only need to do this once.
     adb logcat | grep "auth%2Fphotos.native"
     ```
 
-4. If you are already using ReVanced - remove Google Account from GmsCore.
-5. Open Google Photos ReVanced on your device and log into your account.
-6. One or more identical GmsCore logs should appear in the terminal.
-7. Copy text from `androidId=` to the end of the line from any log.
+4. If you are already using Morphe, remove your Google Account from microG-RE first.
+5. Open Google Photos Morphe on your device and log into your account.
+6. One or more identical microG-RE log entries should appear in the terminal.
+7. Copy the text from `androidId=` to the end of the line from any log entry. If multiple log lines appear, keep both saved and try the other if the first fails.
 8. That's it! 🎉
 
-### Option 2 - Official apk. Root required
+### Option 2 - Official APK (Root required)
 
 <details>
   <summary><strong>Click to expand</strong></summary>
 
-1. Get a rooted android device or an emulator. Recommended Android versions 9-13
+1. Get a rooted Android device or emulator (Android versions 9–13 recommended).
 2. Connect the device to your PC via ADB.
-3. Install [HTTP Toolkit](https://httptoolkit.com)
-4. In HTTP Toolkit, select Intercept - `Android Device via ADB`. Filter traffic with
+3. Install [HTTP Toolkit](https://httptoolkit.com).
+4. In HTTP Toolkit, select **Intercept** -> **Android Device via ADB**. Filter traffic with:
 
     ```text
     contains(https://www.googleapis.com/auth/photos.native)
     ```
 
-    Or if you have an older version of Google Photos, try
+    Or if you have an older version of Google Photos, try:
 
     ```text
     contains(www.googleapis.com%2Fauth%2Fplus.photos.readwrite)
     ```
 
-5. Open Google Photos app and login with your account.
-6. A single request should appear.  
-   Copy request body as text.  
+5. Open the Google Photos app and log into your account.
+6. A request should appear. Copy the request body as text.
    ![http_toolkit_tip](media/image.png)
-7. Now you've got yourself your auth_data! 🎉
+7. Now you have your `auth_data`! 🎉
 
 #### Troubleshooting
 
-- __No Auth Request Intercepted__  
+- **No Auth Request Intercepted**  
   1. Log out of your Google account.
   2. Log in again.
-  3. Try `Android App via Frida` interception method in HTTP Toolkit.
+  3. Try the `Android App via Frida` interception method in HTTP Toolkit.
 
 </details>
 
 ## Tools based on gpmc
 
-- Dockerized folder monitoring [Google Photos Uploader](https://github.com/giuseppe99barchetta/Google-Photos-Uploader) by @giuseppe99barchetta
+- Dockerized folder monitoring [Google Photos Uploader](https://github.com/giuseppe99barchetta/Google-Photos-Uploader) by [@giuseppe99barchetta](https://github.com/giuseppe99barchetta)
 
 ## My Other Google Photos Scripts And Tools
 
-- Web api python client: [https://github.com/xob0t/google_photos_web_client](https://github.com/xob0t/google_photos_web_client)
-- Disguise any file as media for GP to accept and store it: [https://github.com/xob0t/gp-file-hide](https://github.com/xob0t/gp-file-hide)
-- Manage library with bulk operations: [https://github.com/xob0t/Google-Photos-Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
+- Web api python client: [Google Photos Web Client](https://github.com/xob0t/google_photos_web_client)
+- Disguise any file as media for GP to accept and store it: [GP File Hide](https://github.com/xob0t/gp-file-hide)
+- Manage library with bulk operations: [Google Photos Toolkit](https://github.com/xob0t/Google-Photos-Toolkit)
