@@ -77,19 +77,12 @@ class Api:
         # this dict has a purpose, just sending `auth_data_dict` can result in auth request that returns encrypted token
         # building it manually should prevent this
         auth_request_data = {
-            "androidId": auth_data_dict["androidId"],
-            "app": "com.google.android.apps.photos",
-            "client_sig": auth_data_dict["client_sig"],
-            "callerPkg": "com.google.android.apps.photos",
-            "callerSig": auth_data_dict["callerSig"],
-            "device_country": auth_data_dict["device_country"],
-            "Email": auth_data_dict["Email"],
-            "google_play_services_version": auth_data_dict["google_play_services_version"],
-            "lang": auth_data_dict["lang"],
-            "oauth2_foreground": auth_data_dict["oauth2_foreground"],
-            "sdk_version": auth_data_dict["sdk_version"],
-            "service": auth_data_dict["service"],
-            "Token": auth_data_dict["Token"],
+            "androidId": auth_data_dict["androidId"], "app": "com.google.android.apps.photos",
+            "client_sig": auth_data_dict["client_sig"], "callerPkg": "com.google.android.apps.photos",
+            "callerSig": auth_data_dict["callerSig"], "device_country": auth_data_dict["device_country"],
+            "Email": auth_data_dict["Email"], "google_play_services_version": auth_data_dict["google_play_services_version"],
+            "lang": auth_data_dict["lang"], "oauth2_foreground": auth_data_dict.get("oauth2_foreground", "1"),
+            "sdk_version": auth_data_dict["sdk_version"], "service": auth_data_dict["service"], "Token": auth_data_dict["Token"],
         }
 
         headers = {
@@ -116,6 +109,11 @@ class Api:
             if "=" in line:
                 key, value = line.split("=", 1)
                 parsed_auth_response[key] = value
+
+        if error := parsed_auth_response.get("Error"):
+            if error == "NeedsBrowser":
+                raise RuntimeError("Google requires browser sign-in at https://accounts.google.com/EmbeddedSetup")
+            raise RuntimeError(f"Google authentication failed: {error}")
 
         return parsed_auth_response
 
