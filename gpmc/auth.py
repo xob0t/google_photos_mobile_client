@@ -48,9 +48,9 @@ def authenticate(oauth_token: str, proxy: str = "", timeout: int = 60) -> str:
 
     Sign in at https://accounts.google.com/EmbeddedSetup, click I agree, then
     copy the oauth_token cookie from your browser's developer tools. The cookie
-    can be supplied as its value or as ``oauth_token=value``.
+    supply the cookie value directly.
     """
-    token = oauth_token.strip().removeprefix("oauth_token=")
+    token = oauth_token.strip()
     if not 16 <= len(token) <= 8192 or any(c in token for c in "\r\n"):
         raise ValueError("Enter the oauth_token cookie value from Google Embedded Setup.")
     android_id = secrets.token_hex(8)

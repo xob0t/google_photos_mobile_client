@@ -117,7 +117,7 @@ class Api:
 
         if parsed_auth_response.get("TokenEncrypted") == "1":
             raise RuntimeError(
-                "Google returned an encrypted auth token. Connect a rooted Android device over ADB so gpmc can import lstBindingKeyAlias."
+                "Google returned an encrypted auth token. Connect a rooted Android device over ADB and retry so gpmc can import lstBindingKeyAlias."
             )
 
         return parsed_auth_response

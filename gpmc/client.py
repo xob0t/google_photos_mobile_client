@@ -121,7 +121,7 @@ class Client:
         self._add_raw_mimetypes()
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
-        if self.auth_data.lstrip().startswith("oauth_token="):
+        if "androidId=" not in self.auth_data:
             from .auth import authenticate
 
             self.auth_data = authenticate(self.auth_data, proxy=proxy, timeout=timeout)

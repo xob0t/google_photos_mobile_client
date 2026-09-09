@@ -52,14 +52,11 @@ print(output)
 
 ```
 
-`auth_data` may also be an `oauth_token` cookie copied from Google Embedded Setup:
+`auth_data` may also be the cookie value copied from Google Embedded Setup:
 
 ```python
-client = Client(auth_data="oauth_token=...")
+client = Client(auth_data="PASTE_COOKIE_VALUE_HERE")
 ```
-
-If Google returns a browser or device challenge, sign in again at
-<https://accounts.google.com/EmbeddedSetup> and provide the newly copied cookie.
 
 ### CLI
 
@@ -145,21 +142,22 @@ You can get a credential without an Android device by exchanging the
    ```python
    from gpmc import Client
 
-   client = Client(auth_data="oauth_token=PASTE_COOKIE_VALUE_HERE")
+   client = Client(auth_data="PASTE_COOKIE_VALUE_HERE")
    client.upload("/path/to/media_file.jpg")
    ```
 
    Or with the CLI:
 
    ```bash
-   gpmc "/path/to/media_file.jpg" --auth_data "oauth_token=PASTE_COOKIE_VALUE_HERE"
+   gpmc "/path/to/media_file.jpg" --auth_data "PASTE_COOKIE_VALUE_HERE"
    ```
 
 Keep the cookie private because it can be used to access your account.
 
 Credentials captured from newer Android 13+ Google Photos builds can include
 token-binding fields. Those credentials require the corresponding binding key
-from the device and are not interchangeable with a plain cookie credential.
+from the device. Connect the rooted Android device over ADB and retry when gpmc
+reports that the auth token is encrypted.
 
 
 ### Option 2 - ReVanced. No root required
