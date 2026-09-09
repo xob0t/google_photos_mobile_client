@@ -155,9 +155,11 @@ You can get a credential without an Android device by exchanging the
    gpmc "/path/to/media_file.jpg" --auth_data "oauth_token=PASTE_COOKIE_VALUE_HERE"
    ```
 
-If Google returns a browser or device challenge, repeat these steps and use a
-newly copied cookie. Keep the cookie private because it can be used to access
-your account.
+Keep the cookie private because it can be used to access your account.
+
+Credentials captured from newer Android 13+ Google Photos builds can include
+token-binding fields. Those credentials require the corresponding binding key
+from the device and are not interchangeable with a plain cookie credential.
 
 
 ### Option 2 - ReVanced. No root required
