@@ -189,6 +189,37 @@ You only need to do this once.
 
 </details>
 
+### Option 3 - Browser sign-in
+
+You can get a credential without an Android device by exchanging the
+`oauth_token` cookie from Google Embedded Setup.
+
+1. Open <https://accounts.google.com/EmbeddedSetup> in your browser.
+2. Sign in to the Google account you want to use and click **I agree**. The
+   page may remain on a loading spinner after sign-in.
+3. Open your browser developer tools and select **Application** (Chrome) or
+   **Storage** (Firefox).
+4. Open **Cookies**, select `https://accounts.google.com`, and copy the value
+   of the `oauth_token` cookie.
+5. Pass the cookie to gpmc as `auth_data`:
+
+   ```python
+   from gpmc import Client
+
+   client = Client(auth_data="oauth_token=PASTE_COOKIE_VALUE_HERE")
+   client.upload("/path/to/media_file.jpg")
+   ```
+
+   Or with the CLI:
+
+   ```bash
+   gpmc "/path/to/media_file.jpg" --auth_data "oauth_token=PASTE_COOKIE_VALUE_HERE"
+   ```
+
+If Google returns a browser or device challenge, repeat these steps and use a
+newly copied cookie. Keep the cookie private because it can be used to access
+your account.
+
 ## Tools based on gpmc
 
 - Dockerized folder monitoring [Google Photos Uploader](https://github.com/giuseppe99barchetta/Google-Photos-Uploader) by @giuseppe99barchetta
