@@ -52,6 +52,15 @@ print(output)
 
 ```
 
+`auth_data` may also be an `oauth_token` cookie copied from Google Embedded Setup:
+
+```python
+client = Client(auth_data="oauth_token=...")
+```
+
+If Google returns a browser or device challenge, sign in again at
+<https://accounts.google.com/EmbeddedSetup> and provide the newly copied cookie.
+
 ### CLI
 
 ```bash
@@ -83,7 +92,7 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --auth_data AUTH_DATA
-                        Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
+                        Google auth data or an Embedded Setup oauth_token cookie. If not provided, `GP_AUTH_DATA` env variable will be used.
   --album ALBUM         Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.
                         Example for using 'AUTO':
                         When uploading '/foo':
