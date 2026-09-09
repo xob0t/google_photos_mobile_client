@@ -115,6 +115,11 @@ class Api:
                 raise RuntimeError("Google requires browser sign-in at https://accounts.google.com/EmbeddedSetup")
             raise RuntimeError(f"Google authentication failed: {error}")
 
+        if parsed_auth_response.get("TokenEncrypted") == "1":
+            raise RuntimeError(
+                "Google returned an encrypted auth token. Connect a rooted Android device over ADB so gpmc can import lstBindingKeyAlias."
+            )
+
         return parsed_auth_response
 
     def get_upload_token(self, sha_hash_b64: str, file_size: int) -> str:
