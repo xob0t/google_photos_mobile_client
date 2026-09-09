@@ -121,6 +121,10 @@ class Client:
         self._add_raw_mimetypes()
         self.timeout = timeout
         self.auth_data = self._handle_auth_data(auth_data)
+        if "androidId=" not in self.auth_data:
+            from .auth import authenticate
+
+            self.auth_data = authenticate(self.auth_data, proxy=proxy, timeout=timeout)
         self.language = language or utils.parse_language(self.auth_data) or "en_US"
         email = utils.parse_email(self.auth_data)
         self.logger.info(f"User: {email}")

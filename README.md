@@ -52,6 +52,12 @@ print(output)
 
 ```
 
+`auth_data` may also be the cookie value copied from Google Embedded Setup:
+
+```python
+client = Client(auth_data="PASTE_COOKIE_VALUE_HERE")
+```
+
 ### CLI
 
 ```bash
@@ -83,7 +89,7 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --auth_data AUTH_DATA
-                        Google auth data for authentication. If not provided, `GP_AUTH_DATA` env variable will be used.
+                        Google auth data or an Embedded Setup oauth_token cookie. If not provided, `GP_AUTH_DATA` env variable will be used.
   --album ALBUM         Add uploaded media to an album with given name. If set to 'AUTO', albums will be created based on the immediate parent directory of each file.
                         Example for using 'AUTO':
                         When uploading '/foo':
@@ -119,7 +125,42 @@ File Filter Options:
 
 You only need to do this once.
 
-### Option 1 - ReVanced. No root required
+### Option 1 - Browser sign-in
+
+You can get a credential without an Android device by exchanging the
+`oauth_token` cookie from Google Embedded Setup.
+
+1. Open <https://accounts.google.com/EmbeddedSetup> in your browser.
+2. Sign in to the Google account you want to use and click **I agree**. The
+   page may remain on a loading spinner after sign-in.
+3. Open your browser developer tools and select **Application** (Chrome) or
+   **Storage** (Firefox).
+4. Open **Cookies**, select `https://accounts.google.com`, and copy the value
+   of the `oauth_token` cookie.
+5. Pass the cookie to gpmc as `auth_data`:
+
+   ```python
+   from gpmc import Client
+
+   client = Client(auth_data="PASTE_COOKIE_VALUE_HERE")
+   client.upload("/path/to/media_file.jpg")
+   ```
+
+   Or with the CLI:
+
+   ```bash
+   gpmc "/path/to/media_file.jpg" --auth_data "PASTE_COOKIE_VALUE_HERE"
+   ```
+
+Keep the cookie private because it can be used to access your account.
+
+Credentials captured from newer Android 13+ Google Photos builds can include
+token-binding fields. Those credentials require the corresponding binding key
+from the device. Connect the rooted Android device over ADB and retry when gpmc
+reports that the auth token is encrypted.
+
+
+### Option 2 - ReVanced. No root required
 
 1. Install Google Photos ReVanced on your device.
     - Install GmsCore [https://github.com/ReVanced/GmsCore/releases](https://github.com/ReVanced/GmsCore/releases)
@@ -145,7 +186,8 @@ You only need to do this once.
 7. Copy text from `androidId=` to the end of the line from any log.
 8. That's it! 🎉
 
-### Option 2 - Official apk. Root required
+
+### Option 3 - Official apk. Root required
 
 <details>
   <summary><strong>Click to expand</strong></summary>
@@ -179,6 +221,7 @@ You only need to do this once.
   3. Try `Android App via Frida` interception method in HTTP Toolkit.
 
 </details>
+
 
 ## Tools based on gpmc
 
