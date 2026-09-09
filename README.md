@@ -128,7 +128,39 @@ File Filter Options:
 
 You only need to do this once.
 
-### Option 1 - ReVanced. No root required
+### Option 1 - Browser sign-in
+
+You can get a credential without an Android device by exchanging the
+`oauth_token` cookie from Google Embedded Setup.
+
+1. Open <https://accounts.google.com/EmbeddedSetup> in your browser.
+2. Sign in to the Google account you want to use and click **I agree**. The
+   page may remain on a loading spinner after sign-in.
+3. Open your browser developer tools and select **Application** (Chrome) or
+   **Storage** (Firefox).
+4. Open **Cookies**, select `https://accounts.google.com`, and copy the value
+   of the `oauth_token` cookie.
+5. Pass the cookie to gpmc as `auth_data`:
+
+   ```python
+   from gpmc import Client
+
+   client = Client(auth_data="oauth_token=PASTE_COOKIE_VALUE_HERE")
+   client.upload("/path/to/media_file.jpg")
+   ```
+
+   Or with the CLI:
+
+   ```bash
+   gpmc "/path/to/media_file.jpg" --auth_data "oauth_token=PASTE_COOKIE_VALUE_HERE"
+   ```
+
+If Google returns a browser or device challenge, repeat these steps and use a
+newly copied cookie. Keep the cookie private because it can be used to access
+your account.
+
+
+### Option 2 - ReVanced. No root required
 
 1. Install Google Photos ReVanced on your device.
     - Install GmsCore [https://github.com/ReVanced/GmsCore/releases](https://github.com/ReVanced/GmsCore/releases)
@@ -154,7 +186,8 @@ You only need to do this once.
 7. Copy text from `androidId=` to the end of the line from any log.
 8. That's it! 🎉
 
-### Option 2 - Official apk. Root required
+
+### Option 3 - Official apk. Root required
 
 <details>
   <summary><strong>Click to expand</strong></summary>
@@ -189,36 +222,6 @@ You only need to do this once.
 
 </details>
 
-### Option 3 - Browser sign-in
-
-You can get a credential without an Android device by exchanging the
-`oauth_token` cookie from Google Embedded Setup.
-
-1. Open <https://accounts.google.com/EmbeddedSetup> in your browser.
-2. Sign in to the Google account you want to use and click **I agree**. The
-   page may remain on a loading spinner after sign-in.
-3. Open your browser developer tools and select **Application** (Chrome) or
-   **Storage** (Firefox).
-4. Open **Cookies**, select `https://accounts.google.com`, and copy the value
-   of the `oauth_token` cookie.
-5. Pass the cookie to gpmc as `auth_data`:
-
-   ```python
-   from gpmc import Client
-
-   client = Client(auth_data="oauth_token=PASTE_COOKIE_VALUE_HERE")
-   client.upload("/path/to/media_file.jpg")
-   ```
-
-   Or with the CLI:
-
-   ```bash
-   gpmc "/path/to/media_file.jpg" --auth_data "oauth_token=PASTE_COOKIE_VALUE_HERE"
-   ```
-
-If Google returns a browser or device challenge, repeat these steps and use a
-newly copied cookie. Keep the cookie private because it can be used to access
-your account.
 
 ## Tools based on gpmc
 
