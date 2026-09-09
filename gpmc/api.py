@@ -84,6 +84,11 @@ class Api:
             "lang": auth_data_dict["lang"], "oauth2_foreground": auth_data_dict.get("oauth2_foreground", "1"),
             "sdk_version": auth_data_dict["sdk_version"], "service": auth_data_dict["service"], "Token": auth_data_dict["Token"],
         }
+        # Newer Photos credentials may carry token-binding metadata. Preserve
+        # these fields so the server can negotiate the encrypted-token flow.
+        for field in ("token_binding_alias", "assertion_jwt", "check_tb_upgrade_eligible"):
+            if field in auth_data_dict:
+                auth_request_data[field] = auth_data_dict[field]
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -119,6 +124,10 @@ class Api:
             raise RuntimeError(
                 "Google returned an encrypted auth token. Connect a rooted Android device over ADB and retry so gpmc can import lstBindingKeyAlias."
             )
+        if not parsed_auth_response.get("Auth"):
+            raise RuntimeError("Google authentication response did not contain an Auth token")
+        if not parsed_auth_response.get("Expiry"):
+            raise RuntimeError("Google authentication response did not contain an Expiry value")
 
         return parsed_auth_response
 
